@@ -98,6 +98,16 @@ class BuildReleaseTests(unittest.TestCase):
             builder.build_release(self.source, self.root / "out", "1.0.2")
         self.assertFalse((self.root / "out").exists())
 
+    def test_reviewed_synthetic_assistant_documentation_is_packaged_but_other_images_are_rejected(self):
+        reviewed = "client/docs/verification/assistant-long-history/06-about-owner-dark.png"
+        self.add_file(reviewed, b"reviewed synthetic fixture image")
+        archive_path = builder.build_release(self.source, self.root / "reviewed-docs", "1.0.2")
+        with zipfile.ZipFile(archive_path) as archive:
+            self.assertEqual(archive.read("tauri2-portable/" + reviewed), b"reviewed synthetic fixture image")
+        self.add_file("client/docs/verification/assistant-long-history/other-chat.png", b"unreviewed image")
+        with self.assertRaisesRegex(ValueError, "unreviewed image"):
+            builder.build_release(self.source, self.root / "unreviewed-docs", "1.0.2")
+
     def test_private_and_unreviewed_files_are_rejected(self):
         private_paths = (
             ".local/history.json", "client/account-cache/state.json",

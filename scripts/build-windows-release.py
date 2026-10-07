@@ -60,6 +60,21 @@ ALLOWED_APP_IMAGES = {
     ("client", "chatui", "assets", "wechatvibe-icon.png"),
     ("client", "chatui", "assets", "wechatvibe-icon.ico"),
 }
+# Reviewed, synthetic-only documentation images; keep exact filenames so an
+# arbitrary image added next to them cannot enter a release package.
+ALLOWED_APP_IMAGES.update({
+    ("client", "docs", "verification", edition, filename)
+    for edition, filenames in {
+        "assistant-1.1.0": (
+            "08-assistant-all-summary.png", "09-assistant-time-summary.png",
+            "10-assistant-custom-reply.png", "11-assistant-small-settings.png"),
+        "assistant-long-history": (
+            "06-about-owner-dark.png", "08-assistant-all-summary.png",
+            "09-assistant-time-summary.png", "10-assistant-custom-reply.png",
+            "11-assistant-small-settings.png"),
+    }.items()
+    for filename in filenames
+})
 DEPENDENCY_IMAGE_ROOTS = (
     ("client", "runtime", "python", "lib", "site-packages", "win32com"),
     ("client", "runtime", "python", "lib", "site-packages", "wechatauto"),
