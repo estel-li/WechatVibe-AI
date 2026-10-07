@@ -32,6 +32,21 @@ WechatVibe 只读读取本机已登录的 Windows 微信，分析消息情绪与
 
 ## 功能介绍
 
+### AI 聊天总结与帮我回复（1.1.0 开发版）
+
+当前源码新增 AI 助手功能，GitHub 已发布的 1.0.0 运行包尚不包含这些功能。
+
+- **入口**：当前聊天下方，“意图识别”“人物画像”右边新增“AI 总结”和“帮我回复”。无需选择会话时，也能在「设置 → 通用设置 → AI 对话助手」先配置模型。
+- **独立模型设置**：提供 DeepSeek 官方预设以及自定义 API，支持获取模型列表、手动输入模型、测试连接和设置上下文容量。助手配置独立于消息意图和画像分析；不会因为启用助手而自动将其他聊天送到 API。
+- **全量或时间范围总结**：总结当前会话的完整历史，或指定起止时间内的消息，覆盖界面尚未加载的记录。长对话分段整理后合并，并显示进度；图片、语音等只使用已有类型描述，不猜测媒体内容。
+- **语境回复**：使用最近对话，或用户选择的全部/时间范围作为上下文。支持普通朋友、亲密朋友、同事、亲戚、长辈和自定义关系；各类基础提示词可编辑并保存，还能补充本次想表达的意思。
+- **重新生成与草稿**：不满意可重新生成，也可调整关系、提示词和要求后重试。结果可复制或放入原有草稿框，由用户决定如何使用；应用仍不会自动发送微信消息。
+- **取消与隔离**：支持主动取消，关闭助手或切换会话/账号后取消旧任务并清除过期输出。API Key 使用 Windows DPAPI 加密保存，不回传明文、不放入浏览器 localStorage；总结与回复结果只在当前进程内存中保存。
+
+本地 Laya 继续负责原有本地分析；上述 AI 助手功能使用用户主动配置的 API 或本地兼容接口。临时测试密钥不会预置到源码或发行包。
+
+使用与验证说明见 [AI 对话助手](docs/ai-assistant.md)，包括完整回归、真实 DeepSeek 合成对话测试及 18 项原生桌面验证。
+
 ### 消息情绪与意图
 
 在聊天页点击「意图识别」，消息下方会显示情绪和意图两个短标签，例如「开心」「期待」「委屈」，或「分享」「邀约」「求安慰」「婉拒」。
@@ -271,10 +286,10 @@ npm test
 发行更新 ZIP 使用单独的 Tauri 产品标识与根目录，避免接收 Electron 架构更新包：
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/build-windows-release.py --input dist/WechatVibe-tauri2 --version 1.0.0 --output-dir dist/releases
+.\.venv\Scripts\python.exe scripts/build-windows-release.py --input dist/WechatVibe-tauri2 --version 1.1.0 --output-dir dist/releases
 ```
 
-输出 `WechatVibe-tauri2-1.0.0-windows-x64.zip`，内部根目录为 `tauri2-portable/`。`--with-model` 生成单独的 `-windows-x64-full.zip`。签名通过 `scripts/build-update-manifest.cjs` 管理，使用 `WECHATVIBE_UPDATE_SIGNING_KEY_FILE` 指定与应用公钥对应的 Ed25519 私钥；私钥仅在维护者本地保存，不进入 Git、stage、安装包或发布资产。
+输出 `WechatVibe-tauri2-1.1.0-windows-x64.zip`，内部根目录为 `tauri2-portable/`。`--with-model` 生成单独的 `-windows-x64-full.zip`。签名通过 `scripts/build-update-manifest.cjs` 管理，使用 `WECHATVIBE_UPDATE_SIGNING_KEY_FILE` 指定与应用公钥对应的 Ed25519 私钥；私钥仅在维护者本地保存，不进入 Git、stage、安装包或发布资产。
 
 迁移边界与验证记录见 [MIGRATION.md](MIGRATION.md)，启动诊断见 [docs/startup-diagnostics.md](docs/startup-diagnostics.md)，第三方许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 ### 业务结构与词库

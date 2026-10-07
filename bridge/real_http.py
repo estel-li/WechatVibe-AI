@@ -18,6 +18,7 @@ from wechat_source import WeChatSource
 from account_store import AccountConflict, AccountNotFound
 from instance_identity import default_port, instance_id
 from model_source import ModelSourceUnavailable
+from ai_assistant import AssistantRequestError
 
 CHATUI = ROOT / "chatui"
 CONTROL_TOKEN_ENV = "WECHATVIBE_CONTROL_TOKEN"
@@ -121,6 +122,11 @@ def make_handler(backend, accounts=None, control_token=None):
             parsed = urlsplit(self.path)
             try:
                 query = self.query(parsed)
+                if parsed.path == "/api/assistant/settings":
+                    return self.send(200, backend.assistant_service().settings())
+                if parsed.path == "/api/assistant/jobs":
+                    return self.send(200, backend.assistant_service().get_job(
+                        user_value(query.get("account")), request_id_value(query.get("id"))))
                 if parsed.path == "/api/health":
                     return self.send(200, {**backend.health(), "instanceId": instance_id(ROOT),
                                            "appVersion": APP_VERSION})
@@ -197,9 +203,15 @@ def make_handler(backend, accounts=None, control_token=None):
                     return self.send(404, {"error": "not found"})
                 mime = static_content_type(target.name)
                 return self.send(200, target.read_bytes(), mime)
+            except AssistantRequestError as exc:
+                return self.send(exc.status, {"error": exc.code, "message": exc.message})
             except ValueError as exc:
+                if parsed.path.startswith("/api/assistant/"):
+                    return self.send(400, {"error": "invalid-assistant-request", "message": "AI 助手请求格式不正确"})
                 return self.send(400, {"error": str(exc)})
             except Exception as exc:
+                if parsed.path.startswith("/api/assistant/"):
+                    return self.send(503, {"error": "assistant-unavailable", "message": "AI 助手暂不可用，请重试"})
                 return self.send(503, {"error": type(exc).__name__, "message": str(exc)[:200]})
 
         def do_POST(self):
@@ -230,25 +242,40 @@ def make_handler(backend, accounts=None, control_token=None):
                 return
             model_endpoints = ("/api/model-source/list", "/api/model-source/test",
                                "/api/model-source/activate", "/api/model-source/clear-key")
+            assistant_endpoints = ("/api/assistant/settings", "/api/assistant/models",
+                                   "/api/assistant/test", "/api/assistant/jobs", "/api/assistant/cancel")
             if endpoint not in ("/api/analyze", "/api/predict-reply", "/api/messages/batch",
                                  "/api/runtime", "/api/local-model", "/api/model-insights",
                                  "/api/model-portrait", "/api/analysis-cache/clear",
                                  "/api/analysis-cache/resume", "/api/conversation-selection",
                                  "/api/data-root", "/api/data-root/clear",
                                  "/api/analysis-workers",
-                                 *model_endpoints):
+                                 *model_endpoints, *assistant_endpoints):
                 return self.send(404, {"error": "not found"})
             content_type = [part.strip().lower() for part in self.headers.get("Content-Type", "").split(";")]
             if content_type[0] != "application/json" or any(part != "charset=utf-8" for part in content_type[1:]):
                 return self.send(415, {"error": "application/json required"})
             echo = {}
             try:
-                length = integer(self.headers.get("Content-Length"), None, 65536)
+                length = integer(self.headers.get("Content-Length"), None,
+                                 1048576 if endpoint == "/api/assistant/settings" else
+                                 262144 if endpoint in assistant_endpoints else 65536)
                 if length is None:
                     raise ValueError("body required")
                 request = json.loads(self.rfile.read(length).decode("utf-8"))
                 if not isinstance(request, dict) or "texts" in request:
                     raise ValueError("invalid request")
+                if endpoint in assistant_endpoints:
+                    service = backend.assistant_service()
+                    if endpoint == "/api/assistant/settings":
+                        return self.send(200, service.save_settings(request))
+                    if endpoint == "/api/assistant/models":
+                        return self.send(200, service.list_models(request))
+                    if endpoint == "/api/assistant/test":
+                        return self.send(200, service.test_model(request))
+                    if endpoint == "/api/assistant/cancel":
+                        return self.send(200, service.cancel_job(request))
+                    return self.send(202, service.start_job(request))
                 if endpoint in model_endpoints:
                     try:
                         if endpoint == "/api/model-source/list":
@@ -368,11 +395,17 @@ def make_handler(backend, accounts=None, control_token=None):
                                  80 if mode == "recent" else 5000))
                 return self.send(202, {"job": backend.start(user, mode, limit,
                                                              expected_account=expected_account)})
+            except AssistantRequestError as exc:
+                return self.send(exc.status, {"error": exc.code, "message": exc.message})
             except ForecastRequestError as exc:
                 return self.send(exc.status, {**echo, "error": exc.code, "message": exc.message})
             except (ValueError, UnicodeError, json.JSONDecodeError) as exc:
+                if endpoint.startswith("/api/assistant/"):
+                    return self.send(400, {"error": "invalid-assistant-request", "message": "AI 助手请求格式不正确"})
                 return self.send(400, {**echo, "error": str(exc)})
             except Exception as exc:
+                if endpoint.startswith("/api/assistant/"):
+                    return self.send(503, {"error": "assistant-unavailable", "message": "AI 助手暂不可用，请重试"})
                 return self.send(503, {**echo, "error": type(exc).__name__, "message": str(exc)[:200]})
 
         def do_DELETE(self):

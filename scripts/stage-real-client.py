@@ -19,7 +19,7 @@ SCRIPTS = (
 )
 BRIDGE = (
     "account_api.py", "account_store.py", "conversation_selection.py",
-    "analysis_server.ts", "batch_engine.py",
+    "analysis_server.ts", "ai_assistant.py", "batch_engine.py",
     "batch_state.py", "cache_source.py", "chat_server.py", "data_root_source.py", "history_browser.py",
     "instance_identity.py", "live_source.py", "model_source.py", "model_bundle.py",
     "local_model_source.py", "model_install.py", "profile_signals.py", "profile_state.py",
@@ -54,12 +54,17 @@ if _model_manifest.get("schema") != 1 or set(MODEL_FILES) != set(MODEL_PINS):
 PUBLIC_FILES = (
     "LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "MIGRATION.md",
     "docs/startup-diagnostics.md", "docs/review-and-performance.md",
+    "docs/ai-assistant.md", "docs/verification/assistant-1.1.0/verification.json",
+    "docs/verification/assistant-1.1.0/08-assistant-all-summary.png",
+    "docs/verification/assistant-1.1.0/09-assistant-time-summary.png",
+    "docs/verification/assistant-1.1.0/10-assistant-custom-reply.png",
+    "docs/verification/assistant-1.1.0/11-assistant-small-settings.png",
     "licenses/node-LICENSE-24.11.1.txt", "licenses/node-LICENSE-24.18.0.txt",
     "licenses/rust-runtime-notices.txt", "chatui/index.html",
-    "chatui/app.js", "chatui/desktop-host.js", "chatui/ui-shell.js", "chatui/message-labels.js", "chatui/message-insight-adapters.js", "chatui/view-state.js", "chatui/style.css", "chatui/kaomoji.js",
+    "chatui/app.js", "chatui/ai-assistant.js", "chatui/ai-assistant.css", "chatui/desktop-host.js", "chatui/ui-shell.js", "chatui/message-labels.js", "chatui/message-insight-adapters.js", "chatui/view-state.js", "chatui/style.css", "chatui/kaomoji.js",
     "chatui/data/analysis-catalog.json", "chatui/assets/wechatvibe-icon.png",
     "chatui/assets/wechatvibe-icon.ico", "analysis/analysis.ts",
-    "analysis/model-connectors.ts", "analysis/api-insights.ts",
+    "analysis/model-connectors.ts", "analysis/ai-assistant.ts", "analysis/api-insights.ts",
     "analysis/api-message-insights.ts", "analysis/api-insight-stream.ts", "analysis/api-portrait.ts", "analysis/api-portrait-evidence.ts", "analysis/api-analysis-json.ts",
     "analysis/api-portrait-classifier.ts",
     "analysis/local-message-insights.ts",

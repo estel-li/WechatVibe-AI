@@ -4,12 +4,15 @@
   const dialogs = [document.getElementById("settingsModal"), document.getElementById("updateModal")].filter(Boolean);
   const returnFocus = new Map();
   let active = null;
+  const assistant = document.getElementById("assistantModal");
+  const assistantOpen = () => !!assistant && !assistant.hidden;
   const visible = node => !node.disabled && node.tabIndex >= 0 && node.getAttribute("aria-disabled") !== "true" &&
     !node.closest("[hidden]") && node.getClientRects().length > 0;
   const controls = dialog => [...dialog.querySelectorAll('button, a[href], summary, input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter(visible);
   const focusFirst = dialog => (controls(dialog)[0] || dialog).focus();
 
   function sync() {
+    if (assistantOpen()) return;
     const next = dialogs.filter(dialog => dialog.classList.contains("show")).at(-1) || null;
     if (next === active) return;
     const previous = active;
@@ -25,6 +28,7 @@
     }
   }
   document.addEventListener("focusin", event => {
+    if (assistantOpen()) return;
     const dialog = dialogs.find(node => node.contains(event.target) && node.classList.contains("show"));
     if (dialog && event.relatedTarget && !dialog.contains(event.relatedTarget) && !returnFocus.has(dialog))
       returnFocus.set(dialog, event.relatedTarget);
@@ -32,6 +36,7 @@
     if (top && !top.contains(event.target)) focusFirst(top);
   });
   document.addEventListener("keydown", event => {
+    if (assistantOpen()) return;
     if (!active || event.isComposing) return;
     if (event.key === "Escape") {
       event.preventDefault();
@@ -51,6 +56,7 @@
     dialog.tabIndex = -1;
     new MutationObserver(sync).observe(dialog, { attributes: true, attributeFilter: ["class"] });
   }
+  if (assistant) new MutationObserver(sync).observe(assistant, { attributes: true, attributeFilter: ["hidden"] });
   const tabs = [...document.querySelectorAll(".settings-tab-btn")];
   function syncTabs() {
     for (const tab of tabs) {

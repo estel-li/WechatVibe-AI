@@ -42,6 +42,7 @@ import {
   type ModelConfig, type Protocol,
 } from "../analysis/model-connectors";
 import { analyzeApiInsights, type ApiInsightMessage } from "../analysis/api-message-insights";
+import { generateAssistant, type AssistantInput, type AssistantProgress } from "../analysis/ai-assistant";
 import { API_PORTRAIT_CLASSIFIER_VERSION, classifyApiPortraitBatch } from "../analysis/api-portrait-classifier";
 import { refreshApiPortraitAxes, updateApiPortrait, extractPortraitObservations, synthesizeApiPortrait,
   type ApiPortrait, type ApiPortraitEvidenceState, type ApiPortraitMessage } from "../analysis/api-portrait";
@@ -86,14 +87,46 @@ function connectorConfig(req: Record<string, unknown>, requireModel: boolean): M
     model: typeof req.model === "string" ? req.model : "" };
 }
 
-type ApiGenerationCommand = "model:insights" | "model:portrait" | "model:portrait-axes";
+type ApiGenerationCommand = "model:insights" | "model:portrait" | "model:portrait-axes" | "assistant:generate";
 
 function isApiGenerationCommand(cmd: string): cmd is ApiGenerationCommand {
-  return cmd === "model:insights" || cmd === "model:portrait" || cmd === "model:portrait-axes";
+  return cmd === "model:insights" || cmd === "model:portrait" || cmd === "model:portrait-axes" || cmd === "assistant:generate";
 }
 
 async function handleApiGeneration(id: unknown, cmd: ApiGenerationCommand,
   req: Record<string, unknown>): Promise<void> {
+  if (cmd === "assistant:generate") {
+    if (!req.config || typeof req.config !== "object" || Array.isArray(req.config)) {
+      emit({ id, cmd, analysisVersion: ANALYSIS_VERSION, error: "invalid-request" });
+      return;
+    }
+    let lastProgress: AssistantProgress | undefined;
+    // A complete-history job can take many bounded requests; heartbeats keep the
+    // Python inactivity timeout alive without extending any individual API call.
+    const heartbeat = setInterval(() => {
+      if (lastProgress) emit({ id, cmd, analysisVersion: ANALYSIS_VERSION, assistantProgress: lastProgress });
+    }, 10_000);
+    try {
+      const result = await generateAssistant(req.config as unknown as ModelConfig, {
+        kind: req.kind, messages: req.messages, systemPrompt: req.systemPrompt,
+        instructions: req.instructions, previousReply: req.previousReply,
+      } as AssistantInput, {
+        onProgress: progress => {
+          lastProgress = progress;
+          emit({ id, cmd, analysisVersion: ANALYSIS_VERSION, assistantProgress: progress });
+        },
+        onTextDelta: delta => emit({ id, cmd, analysisVersion: ANALYSIS_VERSION, streamDelta: delta }),
+      });
+      emit({ id, cmd, analysisVersion: ANALYSIS_VERSION, ...result });
+    } catch (error) {
+      // Only enum codes cross JSONL. Provider bodies may contain keys or chat.
+      emit({ id, cmd, analysisVersion: ANALYSIS_VERSION,
+        error: error instanceof ModelConnectorError ? error.code : "provider-error" });
+    } finally {
+      clearInterval(heartbeat);
+    }
+    return;
+  }
   if (cmd === "model:insights") {
     if (!Array.isArray(req.messages) || !Array.isArray(req.targetIds)) {
       emit({ id, cmd, analysisVersion: ANALYSIS_VERSION, error: "invalid-request" });
@@ -503,6 +536,7 @@ async function main(): Promise<void> {
     "model:insights": { active: 0, pending: [] },
     "model:portrait": { active: 0, pending: [] },
     "model:portrait-axes": { active: 0, pending: [] },
+    "assistant:generate": { active: 0, pending: [] },
   };
   function drainGenerationLane(lane: ApiGenerationLane): void {
     while (lane.active < 10 && lane.pending.length) {

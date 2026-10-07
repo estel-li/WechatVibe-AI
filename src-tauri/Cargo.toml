@@ -1,6 +1,6 @@
 [package]
 name = "wechatvibe-tauri2"
-version = "1.0.0"
+version = "1.1.0"
 description = "WechatVibe Tauri 2 desktop host"
 authors = ["estel-li"]
 repository = "https://github.com/estel-li/WechatVibe-tauri2"

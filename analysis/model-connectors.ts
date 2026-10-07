@@ -46,6 +46,8 @@ export interface GenerationRequest {
   timeoutMs?: number;
   /** Ask compatible providers for a JSON object; callers still validate every field. */
   jsonMode?: boolean;
+  /** Opt-in plain-text assistance: disable official DeepSeek reasoning overhead. */
+  disableThinking?: boolean;
 }
 
 export interface GenerationResult {
@@ -212,7 +214,8 @@ function guardedFetch(config: SafeConfig, callerSignal?: AbortSignal,
           if (typeof content === "string") {
             body = `data: ${JSON.stringify({
               id: parsed.id, object: "chat.completion.chunk",
-              choices: [{ index: 0, delta: { content }, finish_reason: "stop" }],
+              choices: [{ index: 0, delta: { content }, finish_reason: parsed.choices?.[0]?.finish_reason ?? "stop" }],
+              usage: parsed.usage,
             })}\n\ndata: [DONE]\n\n`;
           }
         } else {
@@ -224,6 +227,7 @@ function guardedFetch(config: SafeConfig, callerSignal?: AbortSignal,
               `event: response.completed\ndata: ${JSON.stringify({
                 type: "response.completed", response: {
                   id: parsed.id, output_text: content, usage: parsed.usage,
+                  status: parsed.status, incomplete_details: parsed.incomplete_details,
                 },
               })}\n\n`;
           }
@@ -418,6 +422,7 @@ export async function generateStructured(
       (outputLimit !== undefined && (!Number.isInteger(outputLimit) ||
         outputLimit < 1 || outputLimit > 32768)) ||
       (request.jsonMode !== undefined && typeof request.jsonMode !== "boolean") ||
+      (request.disableThinking !== undefined && typeof request.disableThinking !== "boolean") ||
       (request.stream !== undefined && typeof request.stream !== "boolean") ||
       (request.timeoutMs !== undefined && (!Number.isInteger(request.timeoutMs) ||
         request.timeoutMs < 1000 || request.timeoutMs > 240_000)) ||
@@ -448,7 +453,7 @@ export async function generateStructured(
         // DeepSeek's official Responses API enables thinking by default, and its
         // output cap includes reasoning tokens. Structured analysis needs room
         // for the final JSON rather than spending the cap before any text appears.
-        const officialDeepSeekJson = request.jsonMode &&
+        const officialDeepSeekJson = (request.jsonMode || request.disableThinking) &&
           new URL(safe.baseUrl).hostname.toLowerCase() === "api.deepseek.com";
         let response;
         try {
@@ -463,23 +468,35 @@ export async function generateStructured(
             let text = "";
             let responseId: string | undefined;
             let responseUsage: any;
+            let finalStatus: string | undefined;
+            let incompleteReason: string | undefined;
+            let validStream = false;
             for await (const event of stream as AsyncIterable<any>) {
+              if (typeof event?.type === "string" && event.type.startsWith("response.")) validStream = true;
               if (event?.type === "response.output_text.delta" && typeof event.delta === "string") {
                 markFirstBody();
                 text += event.delta;
                 request.onTextDelta?.(event.delta);
               }
-              if (event?.type === "response.created" || event?.type === "response.completed") {
+              if (event?.type === "response.created" || event?.type === "response.completed" ||
+                  event?.type === "response.incomplete") {
                 responseId = typeof event.response?.id === "string" ? event.response.id : responseId;
                 responseUsage = event.response?.usage ?? responseUsage;
+                finalStatus = event.response?.status ?? finalStatus;
+                incompleteReason = event.response?.incomplete_details?.reason ?? incompleteReason;
                 if (!text && typeof event.response?.output_text === "string") {
                   text = event.response.output_text;
                 }
               }
               if (event?.type === "error") throw new Error(String(event.message || "provider stream error"));
             }
-            if (!text.trim()) throw streamFormatFailure();
-            response = { output_text: text, id: responseId, usage: responseUsage };
+            if (!text.trim()) {
+              if (finalStatus === "incomplete" && incompleteReason === "max_output_tokens") outputTruncated();
+              if (validStream) throw new ModelConnectorError("empty-response", "模型没有返回文本");
+              throw streamFormatFailure();
+            }
+            response = { output_text: text, id: responseId, usage: responseUsage,
+              status: finalStatus, incomplete_details: { reason: incompleteReason } };
           }
         } catch (error) {
           // Compatible gateways may support the non-stream Responses endpoint but
@@ -512,7 +529,9 @@ export async function generateStructured(
           messages: [{ role: "system" as const, content: request.system },
             { role: "user" as const, content: request.prompt }],
           ...(request.maxOutputTokens !== undefined ?
-            { max_tokens: request.maxOutputTokens } : {}) };
+            { max_tokens: request.maxOutputTokens } : {}),
+          ...(request.disableThinking && new URL(safe.baseUrl).hostname.toLowerCase() === "api.deepseek.com"
+            ? { reasoning_effort: "none" as const } : {}) };
         let response;
         try {
           const requestBody = { ...params,
@@ -523,14 +542,24 @@ export async function generateStructured(
             const stream = await client.chat.completions.create({ ...requestBody, stream: true },
               { signal: request.signal });
             let text = "";
+            let finishReason: string | undefined;
+            let responseUsage: any;
+            let validStream = false;
             for await (const chunk of stream as AsyncIterable<any>) {
+              if (Array.isArray(chunk?.choices)) validStream = true;
               const delta = chunk?.choices?.[0]?.delta?.content;
+              finishReason = chunk?.choices?.[0]?.finish_reason ?? finishReason;
+              responseUsage = chunk?.usage ?? responseUsage;
               if (typeof delta === "string") {
                 markFirstBody(); text += delta; request.onTextDelta?.(delta);
               }
             }
-            if (!text.trim()) throw streamFormatFailure();
-            response = { choices: [{ message: { content: text } }] };
+            if (!text.trim()) {
+              if (finishReason === "length") outputTruncated();
+              if (validStream) throw new ModelConnectorError("empty-response", "模型没有返回文本");
+              throw streamFormatFailure();
+            }
+            response = { choices: [{ message: { content: text }, finish_reason: finishReason }], usage: responseUsage };
           }
         } catch (error) {
           const status = errorStatus(error);

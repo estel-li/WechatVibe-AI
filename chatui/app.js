@@ -129,6 +129,7 @@ chatState.preloadDone = 0;
 chatState.preloadTotal = 0;
 chatState.currentAccount = null;
 chatState.currentUser = null;
+globalThis.window?.AIAssistant?.setConversation({ account: chatState.currentAccount, user: null });
 chatState.currentHasMoreBefore = null;
 chatState.messageSourceReady = false;
 portraitState.profileSnapshotsRequireRefresh = new Set();
@@ -446,6 +447,7 @@ function resetAccountView(message = "当前微信账号未就绪", preserveOther
   chatState.selectedConversations.clear();
   updateAddConversationButton();
   chatState.currentUser = null;
+  globalThis.window?.AIAssistant?.setConversation({ account: chatState.currentAccount, user: null });
   chatState.currentHasMoreBefore = null;
   chatState.messageSourceReady = false;
   chatState.self = null;
@@ -790,6 +792,7 @@ function clearUnselectedConversation() {
     cancelApiInsightWork();
     cancelApiPortraitPoll();
     chatState.currentUser = null;
+    globalThis.window?.AIAssistant?.setConversation({ account: chatState.currentAccount, user: null });
     chatState.messages = [];
     labelState.results = {};
     chatState.conversationMood = null;
@@ -1153,6 +1156,7 @@ async function loadSessions(retryChanged = true) {
       for (const session of data.sessions) if (session?.username) chatState.sessions.set(session.username, session);
       chatState.sessionSignature = signature;
       chatState.currentUser = null;
+      globalThis.window?.AIAssistant?.setConversation({ account: chatState.currentAccount, user: null });
       byId("btnChatHistory").disabled = true;
       chatState.messages = [];
       labelState.results = {};
@@ -2193,6 +2197,8 @@ function switchSession(user, force = false) {
   portraitState.reset("activeAnalysisScope", "currentAnalysisJob");
   labelState.currentRecentJob = null;
   chatState.currentUser = user;
+  globalThis.window?.AIAssistant?.setConversation({ account: chatState.currentAccount, user,
+    name: chatState.sessions.get(user)?.name || user, isGroup: !!chatState.sessions.get(user)?.isGroup });
   byId("btnChatHistory").disabled = false;
   chatState.currentHasMoreBefore = typeof cached?.hasMoreBefore === "boolean" ? cached.hasMoreBefore : null;
   chatState.messages = [];
@@ -4748,6 +4754,7 @@ async function deleteManagedAccount() {
       portraitState.advance("analysisGeneration");
       chatState.controller?.abort();
       chatState.currentUser = null;
+      globalThis.window?.AIAssistant?.setConversation({ account: chatState.currentAccount, user: null });
     }
     let cacheCleared = true;
     try { await clearStoredProfilesForAccount(accountId); }

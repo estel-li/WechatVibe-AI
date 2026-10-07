@@ -29,6 +29,11 @@ class NodeAnalysis:
         # callbacks separate from ``pending`` so a partial event can never satisfy
         # the request before the final validated reply arrives.
         self.stream_callbacks = {}
+        self.progress_callbacks = {}
+        self.request_activity = {}
+        # Assistant jobs own disposable workers. Latch cancellation even when
+        # it happens before launch/version discovery, so they cannot restart.
+        self.assistant_cancelled = threading.Event()
         self.expired_request_ids = set()
         self.model = {"state": "idle"}
         self.serial = 0
@@ -77,6 +82,8 @@ class NodeAnalysis:
         self.model = {"state": "loading"}
         self.pending.clear()
         self.stream_callbacks.clear()
+        self.progress_callbacks.clear()
+        self.request_activity.clear()
         self.expired_request_ids.clear()
         command = ["node", "--import", "tsx", str(ROOT / "bridge/analysis_server.ts")]
         command += ["--api-only"] if self.api_only else ["--provider", self.requested_provider]
@@ -188,6 +195,8 @@ class NodeAnalysis:
                 continue
             stream_callback = None
             stream_delta = reply.get("streamDelta")
+            progress_callback = None
+            progress = reply.get("assistantProgress")
             with self.condition:
                 if self.process is not process:
                     continue
@@ -202,6 +211,16 @@ class NodeAnalysis:
                     candidate = self.stream_callbacks.get(reply["id"])
                     if callable(candidate) and isinstance(stream_delta, str) and stream_delta:
                         stream_callback = candidate
+                        self.request_activity[reply["id"]] = time.monotonic()
+                elif reply.get("id") is not None and "assistantProgress" in reply:
+                    candidate = self.progress_callbacks.get(reply["id"])
+                    if isinstance(progress, dict) and progress.get("phase") in ("map", "reduce", "generate") and all(
+                            type(progress.get(field)) is int and progress[field] >= 0
+                            for field in ("completedCalls", "totalCalls", "completedMessages", "totalMessages")):
+                        if reply["id"] in self.request_activity:
+                            self.request_activity[reply["id"]] = time.monotonic()
+                        if callable(candidate):
+                            progress_callback = candidate
                 elif reply.get("id") is not None:
                     status = reply.get("modelStatus")
                     # API-only workers have no Laya runtime. An API error used to
@@ -222,21 +241,34 @@ class NodeAnalysis:
                     # Progress reporting must never kill the reader or turn a
                     # valid final provider response into a failed request.
                     pass
+            if progress_callback is not None:
+                try:
+                    progress_callback(progress)
+                except Exception:
+                    pass
         with self.condition:
             if self.process is process:
                 self.model = {"state": "error", "message": "analysis process exited"}
                 self.condition.notify_all()
 
-    def _request(self, payload, *, require_model=True, on_stream_delta=None):
+    def _request(self, payload, *, require_model=True, on_stream_delta=None, on_progress=None):
+        assistant = payload.get("cmd") == "assistant:generate"
+        if assistant and self.assistant_cancelled.is_set():
+            raise RuntimeError("cancelled")
         version = self.analysis_version()
         with self.condition:
+            if assistant and self.assistant_cancelled.is_set():
+                raise RuntimeError("cancelled")
             self._launch_locked()
             process = self.process
             probe = self.api_only and payload.get("cmd") in ("model:list", "model:test")
             deadline = time.monotonic() + (12 if probe else 120)
             while (self.model["state"] == "loading" and time.monotonic() < deadline and
-                   process.poll() is None and self.process is process):
+                   process.poll() is None and self.process is process and
+                   not (assistant and self.assistant_cancelled.is_set())):
                 self.condition.wait(timeout=1)
+            if assistant and self.assistant_cancelled.is_set():
+                raise RuntimeError("cancelled")
             if self.model["state"] == "loading":
                 raise RuntimeError("timeout" if self.api_only else "model worker startup timeout")
             if self.api_only and self.process is not process:
@@ -258,25 +290,40 @@ class NodeAnalysis:
             request_id = self.serial
             if on_stream_delta is not None:
                 self.stream_callbacks[request_id] = on_stream_delta
+            if on_progress is not None:
+                self.progress_callbacks[request_id] = on_progress
+            if assistant:
+                self.request_activity[request_id] = time.monotonic()
             try:
+                if assistant and self.assistant_cancelled.is_set():
+                    raise RuntimeError("cancelled")
                 process.stdin.write(json.dumps({"id": request_id, **payload}, ensure_ascii=False) + "\n")
                 process.stdin.flush()
             except Exception:
                 self.stream_callbacks.pop(request_id, None)
+                self.progress_callbacks.pop(request_id, None)
+                self.request_activity.pop(request_id, None)
                 raise
-            response_timeout = (16 if payload.get("cmd") == "model:list" else
+            response_timeout = (240 if assistant else 16 if payload.get("cmd") == "model:list" else
                                 18 if payload.get("cmd") == "model:test" else
                                 270 if payload.get("cmd") == "model:portrait" and
                                 payload.get("phase") == "classify" else 180)
             deadline = time.monotonic() + response_timeout
-            while request_id not in self.pending and time.monotonic() < deadline and process.poll() is None:
+            while (request_id not in self.pending and time.monotonic() < deadline and
+                   process.poll() is None and self.process is process):
                 self.condition.wait(timeout=1)
+                if assistant:
+                    deadline = self.request_activity.get(request_id, 0) + response_timeout
             response = self.pending.pop(request_id, None)
             self.stream_callbacks.pop(request_id, None)
+            self.progress_callbacks.pop(request_id, None)
+            self.request_activity.pop(request_id, None)
             if not response:
                 self.expired_request_ids.add(request_id)
                 if len(self.expired_request_ids) > 256:
                     self.expired_request_ids.clear()
+                if assistant and self.process is not process:
+                    raise RuntimeError("cancelled")
                 raise RuntimeError("timeout" if self.api_only else "analysis process timeout or exited")
             if response.get("error"):
                 raise RuntimeError(str(response["error"]))
@@ -305,6 +352,28 @@ class NodeAnalysis:
         if not isinstance(text, str) or not text.strip():
             raise RuntimeError("empty-response")
         return {"text": text, "usage": response.get("usage")}
+
+    def assistant_generate(self, config, kind, messages, system_prompt, *, instructions="",
+                           previous_reply="", on_progress=None, on_delta=None):
+        """Complete selected history; use a dedicated api_only instance per job."""
+        if not self.api_only:
+            raise ValueError("AI assistant requires an API-only worker")
+        response, _ = self._request({"cmd": "assistant:generate", "config": config,
+                                     "kind": kind, "messages": messages,
+                                     "systemPrompt": system_prompt, "instructions": instructions,
+                                     "previousReply": previous_reply}, require_model=False,
+                                    on_stream_delta=on_delta, on_progress=on_progress)
+        text, count, chunks, coverage = (response.get("text"), response.get("messageCount"),
+                                         response.get("chunkCount"), response.get("coverage"))
+        if (not isinstance(text, str) or not text.strip() or type(count) is not int or
+                count != len(messages) or type(chunks) is not int or chunks < 1 or
+                not isinstance(coverage, list) or len(coverage) != len(messages) or any(
+                    not isinstance(item, dict) or item.get("id") != source.get("id") or
+                    type(item.get("parts")) is not int or item["parts"] < 1
+                    for item, source in zip(coverage, messages))):
+            raise RuntimeError("invalid-output")
+        return {"text": text, "messageCount": count, "chunkCount": chunks,
+                "coverage": coverage, "usage": response.get("usage")}
 
     def model_insights(self, protocol, base_url, api_key, model, messages, target_ids,
                        on_delta=None):
@@ -494,6 +563,7 @@ class NodeAnalysis:
         """Stop this API-only worker promptly when its model source changes."""
         if not self.api_only:
             return
+        self.assistant_cancelled.set()
         with self.condition:
             process = self.process
             reader_thread = self.reader_thread

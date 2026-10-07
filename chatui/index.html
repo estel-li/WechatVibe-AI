@@ -6,6 +6,7 @@
   <title>WechatVibe</title>
   <link rel="icon" type="image/png" href="/assets/wechatvibe-icon.png">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="ai-assistant.css">
 </head>
 <body>
 
@@ -194,6 +195,8 @@
           <!-- Text Action Buttons on the right of icons -->
           <button class="toolbar-text-btn active" id="btnToggleIntent" title="识别当前聊天消息">意图识别</button>
           <button class="toolbar-text-btn" id="btnToolbarPersona" title="切换到当前聊天对象的人格画像">人物画像</button>
+          <button type="button" class="toolbar-text-btn assistant-launch" id="btnAISummary" title="使用你配置的大模型总结对话" disabled>AI 总结</button>
+          <button type="button" class="toolbar-text-btn assistant-launch" id="btnAIReply" title="根据对话上下文生成回复草稿" disabled>帮我回复</button>
           <button class="toolbar-text-btn" id="btnRetryAnalysis" title="重新分析当前会话" hidden>分析失败 · 重试</button>
         </div>
       </div>
@@ -419,6 +422,11 @@
               <option value="1.5">150% (特大)</option>
             </select>
           </div>
+          <div class="settings-row">
+            <span>AI 对话助手</span>
+            <button type="button" class="settings-action-btn" id="btnOpenAssistantSettings">配置模型与提示词</button>
+          </div>
+          <p class="assistant-settings-note">DeepSeek / 自定义 API，独立用于手动总结对话和生成回复草稿。</p>
           <div class="settings-row">
             <label for="selectModelSource">模型来源</label>
             <div class="model-source-choice">
@@ -663,12 +671,80 @@
     </div>
   </div>
 </div>
+<div class="assistant-overlay" id="assistantModal" role="dialog" aria-modal="true" aria-labelledby="assistantTitle" tabindex="-1" hidden>
+  <section class="assistant-card">
+    <header class="assistant-head">
+      <div><h2 id="assistantTitle">AI 对话助手</h2><p id="assistantConversation">请选择一个会话</p></div>
+      <button type="button" id="btnCloseAssistant" class="assistant-close" aria-label="关闭 AI 对话助手">×</button>
+    </header>
+    <nav class="assistant-tabs" role="tablist" aria-label="AI 对话助手功能">
+      <button type="button" id="assistantTabSummary" role="tab" aria-selected="true" aria-controls="assistantSummaryPanel" data-assistant-tab="summary">对话总结</button>
+      <button type="button" id="assistantTabReply" role="tab" aria-selected="false" aria-controls="assistantReplyPanel" data-assistant-tab="reply" tabindex="-1">帮我回复</button>
+      <button type="button" id="assistantTabSettings" role="tab" aria-selected="false" aria-controls="assistantSettingsPanel" data-assistant-tab="settings" tabindex="-1">模型与提示词</button>
+    </nav>
+    <div class="assistant-body">
+      <p class="assistant-notice">仅在你点击生成时，将所选对话发送到配置的 API。回复先放入草稿，由你检查后复制。</p>
+      <p class="assistant-model-info" id="assistantModelInfo">正在读取模型配置…</p>
+      <section id="assistantSummaryPanel" role="tabpanel" aria-labelledby="assistantTabSummary">
+        <div class="assistant-form-row">
+          <label>总结范围<select id="assistantSummaryRange"><option value="all">全部对话</option><option value="time">指定时间</option></select></label>
+          <div id="assistantSummaryDates" class="assistant-date-range" hidden>
+            <label>开始时间<input type="datetime-local" id="assistantSummaryFrom"></label>
+            <label>结束时间<input type="datetime-local" id="assistantSummaryTo"></label>
+          </div>
+        </div>
+        <label class="assistant-field">本次总结要求 <span>可选</span><textarea id="assistantSummaryInstructions" rows="2" maxlength="8000" placeholder="例如：整理重要决定、待办和双方关注的问题"></textarea></label>
+        <button type="button" class="assistant-primary" id="btnAssistantSummary">生成总结</button>
+      </section>
+      <section id="assistantReplyPanel" role="tabpanel" aria-labelledby="assistantTabReply" hidden>
+        <div class="assistant-form-row">
+          <label>对方与我的关系<select id="assistantRelationship"><option value="friend">普通朋友</option><option value="close_friend">亲密朋友</option><option value="colleague">同事</option><option value="relative">亲戚</option><option value="elder">长辈</option><option value="custom">自定义关系</option></select></label>
+          <label>上下文范围<select id="assistantReplyRange"><option value="recent">最近对话</option><option value="all">全部对话</option><option value="time">指定时间</option></select></label>
+        </div>
+        <div id="assistantReplyDates" class="assistant-date-range" hidden>
+          <label>开始时间<input type="datetime-local" id="assistantReplyFrom"></label><label>结束时间<input type="datetime-local" id="assistantReplyTo"></label>
+        </div>
+        <label class="assistant-field">关系提示词 <span>可修改；在“模型与提示词”中保存</span><textarea id="assistantReplyPrompt" rows="3" maxlength="32000" placeholder="说明你与对方的关系、语气和边界"></textarea></label>
+        <label class="assistant-field">我想表达什么 <span>可选</span><textarea id="assistantReplyInstructions" rows="2" maxlength="8000" placeholder="例如：礼貌拒绝这次邀请，并说明周末已有安排"></textarea></label>
+        <button type="button" class="assistant-primary" id="btnAssistantReply">生成回复草稿</button>
+      </section>
+      <section id="assistantSettingsPanel" role="tabpanel" aria-labelledby="assistantTabSettings" hidden>
+        <p class="assistant-help">助手使用独立配置；保存这里的模型不会开启消息自动分析。API Key 只保存在本机。</p>
+        <div class="assistant-form-row">
+          <label>服务预设<select id="assistantPreset"><option value="deepseek">DeepSeek 官方</option><option value="custom">自定义 API</option></select></label>
+          <label>接口协议<select id="assistantProtocol"><option value="chat_completions">OpenAI Chat Completions 兼容</option><option value="responses">OpenAI Responses</option><option value="anthropic">Anthropic</option><option value="gemini">Gemini</option><option value="ollama">Ollama</option></select></label>
+        </div>
+        <label class="assistant-field">API 地址<input type="url" id="assistantBaseUrl" spellcheck="false" placeholder="https://api.deepseek.com"></label>
+        <label class="assistant-field">API Key<input type="password" id="assistantApiKey" autocomplete="off" spellcheck="false" placeholder="输入 API Key"></label>
+        <label class="assistant-check"><input type="checkbox" id="assistantClearKey">清除已保存的 Key</label>
+        <div class="assistant-form-row">
+          <label class="assistant-model-field">模型<input type="text" id="assistantModel" list="assistantModelOptions" spellcheck="false" placeholder="deepseek-flash"><datalist id="assistantModelOptions"></datalist></label>
+          <button type="button" id="btnAssistantModels">获取模型列表</button>
+        </div>
+        <label class="assistant-field">模型上下文长度（Token）<input type="number" id="assistantContextTokens" min="4096" max="1000000" step="1" value="65536"></label>
+        <p class="assistant-help">按服务实际支持的长度填写。较长对话会分段总结；帮我回复会优先保留最近上下文。</p>
+        <label class="assistant-field">总结基本提示词<textarea id="assistantSummaryPrompt" rows="4" maxlength="32000"></textarea></label>
+        <p class="assistant-help">六种关系的基本提示词可在“帮我回复”页选择并编辑；这里会一起保存。</p>
+        <div class="assistant-config-actions"><button type="button" id="btnAssistantTest">测试连接与模型</button><button type="button" class="assistant-primary" id="btnAssistantSave">保存配置与提示词</button></div>
+        <p id="assistantConfigStatus" class="assistant-config-status" role="status" aria-live="polite"></p>
+      </section>
+      <section class="assistant-result" id="assistantResultSection" hidden>
+        <div class="assistant-result-head"><strong id="assistantResultTitle">生成结果</strong><button type="button" id="btnAssistantCancel" hidden>停止生成</button></div>
+        <p id="assistantJobStatus" class="assistant-job-status" role="status" aria-live="polite"></p>
+        <progress id="assistantProgress" aria-label="AI 助手处理进度" hidden></progress>
+        <pre id="assistantResultText" tabindex="0" aria-label="生成结果"></pre>
+        <div class="assistant-result-actions" id="assistantResultActions" hidden><button type="button" id="btnAssistantRegenerate">重新生成</button><button type="button" id="btnAssistantCopy">复制结果</button><button type="button" class="assistant-primary" id="btnAssistantInsert">放入回复草稿</button></div>
+      </section>
+    </div>
+  </section>
+</div>
 <script src="desktop-host.js"></script>
 <script src="kaomoji.js"></script>
 <script src="view-state.js"></script>
 <script src="message-insight-adapters.js"></script>
 <script src="message-labels.js"></script>
 <script src="ui-shell.js"></script>
+<script src="ai-assistant.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

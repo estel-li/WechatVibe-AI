@@ -29,6 +29,18 @@ const server = http.createServer(async (request, response) => {
   if (url.pathname.startsWith("/api/")) {
     let data = "";
     for await (const chunk of request) data += chunk;
+    if (url.pathname.startsWith("/api/assistant/") && process.env.WECHATVIBE_SMOKE_ASSISTANT_URL) {
+      const target = new URL(process.env.WECHATVIBE_SMOKE_ASSISTANT_URL);
+      if (target.protocol !== "http:" || target.hostname !== "127.0.0.1" || target.username || target.password)
+        return send(response, { error: "invalid-synthetic-assistant" }, 503);
+      target.pathname = url.pathname; target.search = url.search;
+      try {
+        const actual = await fetch(target, { method: request.method,
+          headers: { "Content-Type": "application/json" },
+          ...(request.method === "POST" ? { body: data } : {}) });
+        return send(response, await actual.json(), actual.status);
+      } catch { return send(response, { error: "synthetic-assistant-unavailable" }, 503); }
+    }
     const body = data ? JSON.parse(data) : {};
     switch (url.pathname) {
       case "/api/health": return send(response, { ok: true, version: "real-ui-1", data: { state: "ready", account }, model: { state: "missing" } });

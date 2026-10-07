@@ -123,6 +123,7 @@ def assert_minimized():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--exe", type=Path, default=ROOT / "src-tauri/target/debug/WechatVibe.exe")
+    parser.add_argument("--ui-dir", type=Path, default=ROOT / "chatui", help="UI from source or a verified packaged client")
     parser.add_argument("--node", default="node")
     parser.add_argument("--playwright-root", type=Path, help="node_modules directory containing playwright")
     parser.add_argument("--output", type=Path, default=ROOT / "docs/verification")
@@ -167,7 +168,7 @@ def main():
         "print(json.dumps({'stopped':True}))\n", encoding="utf-8")
     (fixture / "chatui/index.html").write_text("<!-- Original UI served by isolated smoke host -->\n", encoding="utf-8")
     environment = {**os.environ, "WECHATVIBE_CLIENT_ROOT": str(fixture), "WECHATVIBE_NODE": args.node,
-                   "WECHATVIBE_PYTHON": sys.executable, "WECHATVIBE_SMOKE_UI_DIR": str(ROOT / "chatui"),
+                   "WECHATVIBE_PYTHON": sys.executable, "WECHATVIBE_SMOKE_UI_DIR": str(args.ui_dir.resolve()),
                    "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS": f"--remote-debugging-port={port}",
                    "WECHATVIBE_SMOKE_CDP": f"http://127.0.0.1:{port}", "WECHATVIBE_SMOKE_OUTPUT": str(output),
                    "WECHATVIBE_SMOKE_PYTHON": sys.executable,

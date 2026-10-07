@@ -172,6 +172,8 @@ class Backend:
         self.request_condition = threading.Condition()
         self.active_requests = 0
         self.closing = False
+        self._assistant_lock = threading.RLock()
+        self._assistant_service = None
         self.cache_clear_in_progress = set()
         self.account_clear_paused = False
         self.performance = {}
@@ -266,6 +268,22 @@ class Backend:
                 self.active_requests -= 1
                 self.request_condition.notify_all()
 
+    def assistant_service(self):
+        """Interactive generation keeps its API profile separate from analysis."""
+        with self._assistant_lock:
+            if self.closing:
+                raise RuntimeError("bridge is closing")
+            if self._assistant_service is None:
+                from ai_assistant import AssistantService
+                self._assistant_service = AssistantService(self, root=ROOT)
+            return self._assistant_service
+
+    def _close_assistant(self):
+        with self._assistant_lock:
+            service, self._assistant_service = self._assistant_service, None
+        if service is not None:
+            service.close()
+
     def pause_for_account_clear(self, account):
         """Drain this bridge's work while retaining a way to resume after a failed clear."""
         with self.request_condition:
@@ -274,6 +292,7 @@ class Backend:
             self.closing = True
         # API insight jobs outlive their HTTP request. Drain them before
         # touching this account's SQLite file.
+        self._close_assistant()
         with self.api_condition:
             self._cancel_api_source_work_locked()
             if not self.api_tasks.wait_for_idle(200):
@@ -333,6 +352,7 @@ class Backend:
             paused = self.account_clear_paused
             self.closing = True
             self.account_clear_paused = False
+        self._close_assistant()
         with self.api_condition:
             self._cancel_api_source_work_locked()
             if not self.api_tasks.wait_for_idle(200):

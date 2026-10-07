@@ -1,0 +1,150 @@
+{
+  "date": "2026-10-07",
+  "version": "1.1.0",
+  "releaseStatus": "local-development-build",
+  "syntheticDataOnly": true,
+  "fullRegression": {
+    "nodeTests": 476,
+    "pythonTests": 488,
+    "nodeScriptSuites": 8,
+    "rustTests": 4,
+    "passed": true
+  },
+  "deepseekOfficial": {
+    "model": "deepseek-flash",
+    "modelDiscovery": true,
+    "connectionTest": {
+      "synthetic": true,
+      "passed": true,
+      "model": "deepseek-flash",
+      "latencyMs": 928,
+      "modelCount": 2
+    },
+    "generationChecks": [
+      {
+        "name": "allSummary",
+        "status": "completed",
+        "messageCount": 6
+      },
+      {
+        "name": "timeSummary",
+        "status": "completed",
+        "messageCount": 3
+      },
+      {
+        "name": "colleagueReply",
+        "status": "completed",
+        "messageCount": 6
+      },
+      {
+        "name": "customRegeneratedReply",
+        "status": "completed",
+        "messageCount": 6
+      }
+    ]
+  },
+  "packagedBuild": {
+    "version": "1.1.0",
+    "verifiedFiles": 8066,
+    "withModel": false,
+    "userDataCopied": false,
+    "executableSha256": "72128c67f85da733f7642f5662d54f395477e156336cfa863b3f117d6f93064c",
+    "portableBytes": 505752223
+  },
+  "runtimeModulesMatchSourceAfterLineEndingNormalization": [
+    "chatui/index.html",
+    "chatui/app.js",
+    "chatui/ai-assistant.js",
+    "chatui/ai-assistant.css",
+    "chatui/ui-shell.js",
+    "bridge/ai_assistant.py",
+    "bridge/real_http.py",
+    "bridge/backend_service.py",
+    "bridge/node_analysis.py",
+    "bridge/analysis_server.ts",
+    "analysis/ai-assistant.ts",
+    "analysis/model-connectors.ts"
+  ],
+  "native": {
+    "synthetic": true,
+    "executableSha256": "72128c67f85da733f7642f5662d54f395477e156336cfa863b3f117d6f93064c",
+    "checks": [
+      "Renderer has no Node require and native shell blocks external navigation/popups",
+      "Native desktop bridge and original 36px titlebar",
+      "Conversation selection, sidebar switching, chat and persona navigation",
+      "Rolling message windows retain 79 of 80 DOM rows; corrected text replaces only its row",
+      "Trusted UI gesture copies synthetic draft through native clipboard",
+      "Settings trap focus, restore the opener, support Escape and keyboard tabs, and display the owner's About page",
+      "Light/dark theme and zoom preserve titlebar geometry",
+      "Native app version and existing software-update UI",
+      "Custom maximize and restore controls operate native window",
+      "Custom minimize and second-instance restore/focus operate native window",
+      "Native AI summary sends all 1305 history messages including unseen earliest records to the real HTTP/Python/Node stack",
+      "Native AI summary applies exact inclusive start/end time to 10 selected messages",
+      "All five relationship presets reach actual generation with their distinct system prompts",
+      "Custom prompt, user instruction and regeneration work; native clipboard and draft insertion never send a WeChat message",
+      "Native cancel and actual app conversation switching discard obsolete AI work/results",
+      "Native settings discover a real fixture model, test using synthetic text only and persist summary/custom relationship prompts through the real HTTP service",
+      "Assistant settings cooperate with the existing dialog focus stack and fit 720x520 at 150 percent zoom",
+      "Worker crash is reported and future RPC fails promptly; native close will run ownership-checked cleanup"
+    ],
+    "rendererPerformance": {
+      "total": 80,
+      "retained": 79,
+      "rollingCreated": 1,
+      "correctedCreated": 1,
+      "durationMs": 1
+    },
+    "smallViewport": {
+      "x": 24,
+      "y": 60,
+      "right": 696,
+      "bottom": 496,
+      "width": 720,
+      "height": 520
+    },
+    "smallUpdateViewport": {
+      "x": 30,
+      "y": 55.5,
+      "right": 690,
+      "bottom": 464.5,
+      "width": 720,
+      "height": 520
+    },
+    "assistant": {
+      "allMessages": 1305,
+      "timeMessages": 10,
+      "relationshipPresets": 5,
+      "customPrompt": true,
+      "regeneration": true,
+      "clipboard": true,
+      "insertDraft": true,
+      "modelDiscovery": true,
+      "connectionTestSyntheticOnly": true,
+      "promptPersistence": true,
+      "cancelAndSwitch": true,
+      "smallViewport": {
+        "x": 30,
+        "y": 48,
+        "right": 690,
+        "bottom": 472,
+        "width": 720,
+        "height": 520
+      }
+    },
+    "analysisRequests": 0,
+    "metrics": {
+      "frozen": true,
+      "platform": "win32",
+      "titlebarHeight": 36,
+      "methods": true,
+      "version": "v1.1.0"
+    },
+    "consoleErrors": [],
+    "workerCrash": {
+      "rejected": true,
+      "ms": 1.7000000029802322
+    },
+    "nativeExitCode": 0
+  }
+}
