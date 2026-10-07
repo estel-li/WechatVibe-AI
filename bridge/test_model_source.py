@@ -117,7 +117,7 @@ class ModelSourceTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        root = Path(self.temp.name)
+        root = Path(self.temp.name).resolve()
         self.root = root
         runtime = root / ".local" / "real-client-runtime"
         self.path = runtime / "api-model-source.json"
