@@ -6,6 +6,7 @@ const readline = require("node:readline");
 const crypto = require("node:crypto");
 
 const ui = path.resolve(process.env.WECHATVIBE_SMOKE_UI_DIR);
+const appVersion = process.env.WECHATVIBE_APP_VERSION;
 const account = "synthetic-ui-verification";
 const sessions = [
   { username: "synthetic-a", name: "测试会话 A", preview: "合成消息，仅用于架构验证", unreadCount: 0, isGroup: false },
@@ -69,8 +70,8 @@ input.on("line", async line => {
       result = { version: "real-ui-1", instanceId: crypto.randomBytes(32).toString("hex"), url: `http://127.0.0.1:${server.address().port}/` };
       break;
     case "model-download-state": result = { phase: "idle" }; break;
-    case "check-updates": result = { status: "current", currentVersion: "1.2.4" }; break;
-    case "update-state": result = { phase: "idle", currentVersion: "1.2.4" }; break;
+    case "check-updates": result = { status: "current", currentVersion: appVersion }; break;
+    case "update-state": result = { phase: "idle", currentVersion: appVersion }; break;
     case "report-ui-ready": result = true; break;
     case "shutdown":
       process.stdout.write(JSON.stringify({ id, result: { stopped: true } }) + "\n");

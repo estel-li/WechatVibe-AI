@@ -1,5 +1,17 @@
 # 更新日志
 
+## [1.0.0](https://github.com/estel-li/WechatVibe-tauri2/releases/tag/v1.0.0) — 2026-10-07
+
+Tauri 2 版独立首发，由 estel-li 维护，基于 tswawa/WechatVibe 的 Electron 项目移植。本版本号与上游分别维护。
+
+- 提供 Windows x64 安装版和绿色版，内置 Node/Python 运行时；Laya 模型按需下载。
+- Rust + Tauri 2 + WebView2 桌面宿主，保留微信只读读取、情绪与意图分析、单聊/群聊画像、模型设置及账号缓存功能。
+- 优化消息节点复用、时间格式化、设置弹窗、键盘操作和后台异常退出清理。
+- 关于页提供 estel-li 主页、本版本仓库和上游来源说明。
+- 更新检查切换到 estel-li/WechatVibe-tauri2，使用本版本独立的 Ed25519 签名校验。
+
+下载与使用说明见 [1.0.0 发布说明](docs/releases/1.0.0.md)。
+
 ## Tauri 2 架构迁移
 
 新增独立 `WechatVibe-tauri2` 目录，以 Rust、Windows WebView2 与 Node sidecar 替换 Electron 桌面宿主及 Electron Builder。原有页面布局、TypeScript 分析实现、Python 微信读取与业务服务保留。便携运行目录使用 `WechatVibe.exe` + `client/`，每个安装独立保存 `client/.local` 数据；更新包使用独立 Tauri 2 产品身份。

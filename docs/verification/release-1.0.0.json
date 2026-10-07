@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "version": "1.0.0",
+  "verifiedOn": "2026-10-07",
+  "maintainer": "estel-li",
+  "tests": {
+    "npmTest": "passed",
+    "node": 447,
+    "python": 444,
+    "rust": 4,
+    "nodeScriptSuites": 8
+  },
+  "nativeUI": {
+    "portable": {
+      "checksPassed": 11,
+      "nativeExitCode": 0,
+      "syntheticData": true
+    },
+    "installer": {
+      "checksPassed": 11,
+      "nativeExitCode": 0,
+      "syntheticData": true
+    }
+  },
+  "portableFilesVerified": 8058,
+  "installerRuntimeFilesVerified": 8056,
+  "installerInstalledForTest": false,
+  "modelWeightsIncluded": false,
+  "userDataIncluded": false,
+  "signatureVerified": true,
+  "publicKeySha256": "daf51be90b54a2a43e88b7235b91dd387a5e9ffe3beff54c8cc5c22693dae3de",
+  "liveWechatAndOnlineAnalysisTested": false,
+  "assets": [
+    {
+      "file": "dist/releases-v1.0.0/WechatVibe-tauri2-1.0.0-windows-x64.zip",
+      "name": "WechatVibe-tauri2-1.0.0-windows-x64.zip",
+      "bytes": 193234616,
+      "sha256": "ce2d2ddc4c8676e63461eb384127dd57e9b811f3b31f2d12196028a5bf64e0fd"
+    },
+    {
+      "file": "dist/releases-v1.0.0/WechatVibe-tauri2-1.0.0-windows-x64-setup.exe",
+      "name": "WechatVibe-tauri2-1.0.0-windows-x64-setup.exe",
+      "bytes": 130609575,
+      "sha256": "79a1af13e5ba2d0f0c26207f666e984aaaed0b2a8efa0a4a771ec79863fb91c3"
+    },
+    {
+      "file": "dist/releases-v1.0.0/update-manifest-tauri2.json",
+      "name": "update-manifest-tauri2.json",
+      "bytes": 358,
+      "sha256": "6b552ff64c4e03773b5c743abfd3c57c7ce6a5808278efc497cae17f8dd3bdaf"
+    },
+    {
+      "file": "dist/releases-v1.0.0/update-manifest-tauri2.sig",
+      "name": "update-manifest-tauri2.sig",
+      "bytes": 64,
+      "sha256": "d40dad5c6cce099fec9482faabeb656721bfb776828f6608ff64d19a5766cc66"
+    },
+    {
+      "file": "dist/releases-v1.0.0/SHA256SUMS-tauri2.txt",
+      "name": "SHA256SUMS-tauri2.txt",
+      "bytes": 293,
+      "sha256": "918babb4d63ecec0c3eeeb54078322476bdb6a530a6c9e689642c799ffeb9fc8"
+    },
+    {
+      "file": "dist/releases-v1.0.0/SHA256SUMS.txt",
+      "name": "SHA256SUMS.txt",
+      "bytes": 493,
+      "sha256": "243205752cae52bb2a5e0f354b5c75424bf119cf06245bd0de3e1e3b4483e656"
+    }
+  ]
+}

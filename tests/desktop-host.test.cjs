@@ -191,7 +191,7 @@ test("only trusted user clicks on approved upstream and maintainer links open ex
   assert.equal(ordinaryCalls(h.calls).length, 0);
   h.navigator.userActivation.isActive = true;
   const targets = ["https://github.com/tswawa", "https://github.com/estel-li",
-    "https://github.com/estel-li/WechatVibe-tauri2"];
+    "https://github.com/estel-li/WechatVibe-tauri2", "https://github.com/estel-li/WechatVibe-tauri2/releases"];
   for (const target of targets) {
     const allowed = clicked(target);
     h.document.listeners.get("click")(allowed);

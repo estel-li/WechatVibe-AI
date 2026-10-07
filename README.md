@@ -9,6 +9,7 @@
 
 [![Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6)](#运行要求)
 [![Tauri 2](https://img.shields.io/badge/desktop-Tauri%202-24C8D8)](https://tauri.app/)
+[![最新版本](https://img.shields.io/github/v/release/estel-li/WechatVibe-tauri2?label=release)](https://github.com/estel-li/WechatVibe-tauri2/releases/latest)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 [功能介绍](#功能介绍) · [下载安装](#下载安装) · [首次使用](#首次使用) · [常见问题](#常见问题) · [开发与构建](#开发与构建) · [数据与隐私](#数据与隐私) · [免责声明](#免责声明) · [来源与致谢](#来源与致谢) · [交流与反馈](#交流与反馈)
@@ -100,7 +101,14 @@ WechatVibe 只读读取本机已登录的 Windows 微信，分析消息情绪与
 
 ## 下载安装
 
-本仓库目前发布源码，尚未上传二进制 Release。可以按 [开发与构建](#开发与构建) 从源码运行或构建。正式运行包发布后将在 [本版本 Releases](https://github.com/estel-li/WechatVibe-tauri2/releases) 提供。
+从 [本版本 Releases](https://github.com/estel-li/WechatVibe-tauri2/releases/latest) 下载 Windows x64 安装版或绿色版。Tauri 版独立版本从 **1.0.0** 开始，保留上游功能；此版本号与上游 Electron 版本号分别维护。
+
+| 发行文件 | 使用方式 |
+| --- | --- |
+| [1.0.0 安装版](https://github.com/estel-li/WechatVibe-tauri2/releases/download/v1.0.0/WechatVibe-tauri2-1.0.0-windows-x64-setup.exe) | 运行安装向导，安装到当前用户目录 |
+| [1.0.0 绿色版](https://github.com/estel-li/WechatVibe-tauri2/releases/download/v1.0.0/WechatVibe-tauri2-1.0.0-windows-x64.zip) | 解压后启动，无需安装应用 |
+
+两个标准包都内置 Node/Python 运行环境，不含 Laya 模型权重；本地模式首次使用需在设置中下载模型。源码运行和自行打包见 [开发与构建](#开发与构建)。
 
 本版本运行包的使用方式：
 
@@ -149,9 +157,9 @@ Tauri 版和上游 Electron 版的目录布局、桌面程序及更新包不同�
 
 ## 软件更新
 
-应用保留「设置 → 关于 → 当前版本」的检查、下载、校验、安装与回退流程。**当前检查地址仍为上游 `tswawa/WechatVibe` Releases；本仓库尚未提供签名更新发布。** Tauri 更新器仅接受对应产品标识、签名及文件布局的 Tauri 2 资产，不会把上游 Electron 包作为本版本更新安装。
+应用保留「设置 → 关于 → 当前版本」的检查、下载、校验、安装与回退流程。**1.0.0 起只检查 `estel-li/WechatVibe-tauri2` Releases。** 更新器使用本版本独立的 Ed25519 公钥，验证对应产品标识、签名及文件布局的 Tauri 2 资产。发布页附带 `update-manifest-tauri2.json`、签名与校验文件供更新器使用；手动安装仅需下载 EXE 或 ZIP。
 
-手动升级时，完全退出应用后使用同架构完整运行包，并保留该安装的 `client/.local` 和 `client/.models`。首次迁移和后续维护说明分别见 [MIGRATION.md](MIGRATION.md) 与 [review 记录](docs/review-and-performance.md)。[CHANGELOG.md](CHANGELOG.md) 保留上游功能版本历史，不代表本仓库已经发布对应版本的二进制文件。
+手动升级时，完全退出应用后使用同架构完整运行包，并保留该安装的 `client/.local` 和 `client/.models`。首次迁移和后续维护说明分别见 [MIGRATION.md](MIGRATION.md) 与 [review 记录](docs/review-and-performance.md)。[CHANGELOG.md](CHANGELOG.md) 区分本版本发布记录和上游功能版本历史。
 
 ## 常见问题
 
@@ -263,10 +271,10 @@ npm test
 发行更新 ZIP 使用单独的 Tauri 产品标识与根目录，避免接收 Electron 架构更新包：
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/build-windows-release.py --input dist/WechatVibe-tauri2 --version 1.2.4 --output-dir dist/releases
+.\.venv\Scripts\python.exe scripts/build-windows-release.py --input dist/WechatVibe-tauri2 --version 1.0.0 --output-dir dist/releases
 ```
 
-输出 `WechatVibe-tauri2-1.2.4-windows-x64.zip`，内部根目录为 `tauri2-portable/`。`--with-model` 生成单独的 `-windows-x64-full.zip`。签名与发布继续通过 `scripts/build-update-manifest.cjs` 管理；私钥不进入源码、stage 或安装包。
+输出 `WechatVibe-tauri2-1.0.0-windows-x64.zip`，内部根目录为 `tauri2-portable/`。`--with-model` 生成单独的 `-windows-x64-full.zip`。签名通过 `scripts/build-update-manifest.cjs` 管理，使用 `WECHATVIBE_UPDATE_SIGNING_KEY_FILE` 指定与应用公钥对应的 Ed25519 私钥；私钥仅在维护者本地保存，不进入 Git、stage、安装包或发布资产。
 
 迁移边界与验证记录见 [MIGRATION.md](MIGRATION.md)，启动诊断见 [docs/startup-diagnostics.md](docs/startup-diagnostics.md)，第三方许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 ### 业务结构与词库

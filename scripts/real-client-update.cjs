@@ -6,8 +6,8 @@ const path = require("node:path");
 const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 
-const RELEASE_API = "https://api.github.com/repos/tswawa/WechatVibe/releases/latest";
-const RELEASES_URL = "https://github.com/tswawa/WechatVibe/releases";
+const RELEASE_API = "https://api.github.com/repos/estel-li/WechatVibe-tauri2/releases/latest";
+const RELEASES_URL = "https://github.com/estel-li/WechatVibe-tauri2/releases";
 const MAX_RESPONSE_BYTES = 256 * 1024;
 const MAX_MANIFEST_BYTES = 16 * 1024;
 const MAX_SUMS_BYTES = 4 * 1024;

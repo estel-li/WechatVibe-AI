@@ -1,7 +1,7 @@
 WechatVibe Tauri 2 — Rust Windows dependency notices
 Includes normal and build dependencies for x86_64-pc-windows-msvc.
 Individual components retain their upstream licenses and notices below.
-Cargo.lock SHA-256: ac9e439cefcd4f28c0be29faa3ce0996db51b94226994cba84ab190552c17c83
+Cargo.lock SHA-256: 2726b1e4e2d1f9310269b932cb86784a84b460eaa5bca23d69403910cf33626e
 
 ==============================================================================
 adler2 2.0.1

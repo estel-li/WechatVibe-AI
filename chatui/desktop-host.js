@@ -115,6 +115,7 @@
     "https://github.com/tswawa/WechatVibe/releases",
     "https://github.com/estel-li",
     "https://github.com/estel-li/WechatVibe-tauri2",
+    "https://github.com/estel-li/WechatVibe-tauri2/releases",
     "https://github.com/fanyuantaier/wechatauto-replica",
   ]);
   document.addEventListener("click", event => {
