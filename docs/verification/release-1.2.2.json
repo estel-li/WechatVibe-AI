@@ -1,0 +1,336 @@
+{
+  "schema": 1,
+  "version": "1.2.2",
+  "verifiedOn": "2026-10-07",
+  "maintainer": "estel-li",
+  "repository": "https://github.com/estel-li/WechatVibe-AI",
+  "publicSourceFilesMatched": 135,
+  "portableAndInstallerClientFilesIdentical": true,
+  "tests": {
+    "npmTest": "passed",
+    "node": 499,
+    "python": 498,
+    "rust": 4,
+    "nodeScriptSuites": 8
+  },
+  "nativeIcons": {
+    "portable": {
+      "executableSha256": "cb02ebba2c3010d4ee326f0a524dea2e814fd51b848c2c30db9a67c9761616b5",
+      "icoFramesVerified": 6
+    },
+    "installer": {
+      "executableSha256": "569ce4be58b8e2bdb89f84fb2370890aed675f8cd5ed060068dd9efd0138e9d1",
+      "icoFramesVerified": 6
+    }
+  },
+  "nativeUI": {
+    "portable": {
+      "checksPassed": 21,
+      "nativeExitCode": 0,
+      "syntheticData": true,
+      "assistant": {
+        "allMessages": 1305,
+        "timeMessages": 10,
+        "relationshipPresets": 5,
+        "customPrompt": true,
+        "regeneration": true,
+        "clipboard": true,
+        "insertDraft": true,
+        "quickTimeRanges": [
+          "day",
+          "week",
+          "month"
+        ],
+        "truncatedMapRecovery": true,
+        "summaryPresets": 7,
+        "replyPresets": 6,
+        "unifiedModelSettings": true,
+        "modelDiscovery": true,
+        "connectionTestSyntheticOnly": true,
+        "promptPersistence": true,
+        "cancelAndSwitch": true,
+        "smallViewport": {
+          "x": 30,
+          "y": 48,
+          "right": 690,
+          "bottom": 472,
+          "width": 720,
+          "height": 520
+        }
+      },
+      "colorPalette": {
+        "choices": [
+          "soft",
+          "standard"
+        ],
+        "fourAppearances": {
+          "soft-dark": {
+            "stored": {
+              "theme": "dark",
+              "palette": "soft",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": false,
+            "header": "rgb(27, 27, 27)",
+            "rail": "rgb(25, 25, 25)",
+            "chat": "rgb(27, 27, 27)",
+            "accent": "#76a988",
+            "bubble": "rgb(53, 70, 58)",
+            "arrow": "rgb(53, 70, 58)",
+            "assistantButton": "rgb(8, 127, 75)"
+          },
+          "soft-light": {
+            "stored": {
+              "theme": "light",
+              "palette": "soft",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": false,
+            "header": "rgb(237, 243, 247)",
+            "rail": "rgb(220, 232, 237)",
+            "chat": "rgb(242, 247, 248)",
+            "accent": "#277f91",
+            "bubble": "rgb(205, 231, 237)",
+            "arrow": "rgb(205, 231, 237)",
+            "assistantButton": "rgb(8, 127, 75)"
+          },
+          "standard-dark": {
+            "stored": {
+              "theme": "dark",
+              "palette": "standard",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": true,
+            "header": "rgb(30, 30, 30)",
+            "rail": "rgb(43, 43, 43)",
+            "chat": "rgb(30, 30, 30)",
+            "accent": "#07c160",
+            "bubble": "rgb(7, 193, 96)",
+            "arrow": "rgb(7, 193, 96)",
+            "assistantButton": "rgb(7, 193, 96)"
+          },
+          "standard-light": {
+            "stored": {
+              "theme": "light",
+              "palette": "standard",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": true,
+            "header": "rgb(245, 245, 245)",
+            "rail": "rgb(230, 230, 230)",
+            "chat": "rgb(245, 245, 245)",
+            "accent": "#07c160",
+            "bubble": "rgb(149, 236, 105)",
+            "arrow": "rgb(149, 236, 105)",
+            "assistantButton": "rgb(7, 193, 96)"
+          }
+        },
+        "reloadPreserved": true
+      },
+      "analysisModelChecksPassed": 16,
+      "analysisModels": {
+        "synthetic": true,
+        "remoteCalls": 0,
+        "insightRequests": 1,
+        "portraitRequests": 1,
+        "sourceScopedCacheRestored": true,
+        "servicePresets": [
+          "deepseek",
+          "minimax",
+          "zhipu",
+          "kimi",
+          "siliconflow"
+        ],
+        "defaultContextTokens": 1000000
+      }
+    },
+    "installer": {
+      "checksPassed": 21,
+      "nativeExitCode": 0,
+      "syntheticData": true,
+      "assistant": {
+        "allMessages": 1305,
+        "timeMessages": 10,
+        "relationshipPresets": 5,
+        "customPrompt": true,
+        "regeneration": true,
+        "clipboard": true,
+        "insertDraft": true,
+        "quickTimeRanges": [
+          "day",
+          "week",
+          "month"
+        ],
+        "truncatedMapRecovery": true,
+        "summaryPresets": 7,
+        "replyPresets": 6,
+        "unifiedModelSettings": true,
+        "modelDiscovery": true,
+        "connectionTestSyntheticOnly": true,
+        "promptPersistence": true,
+        "cancelAndSwitch": true,
+        "smallViewport": {
+          "x": 30,
+          "y": 48,
+          "right": 690,
+          "bottom": 472,
+          "width": 720,
+          "height": 520
+        }
+      },
+      "colorPalette": {
+        "choices": [
+          "soft",
+          "standard"
+        ],
+        "fourAppearances": {
+          "soft-dark": {
+            "stored": {
+              "theme": "dark",
+              "palette": "soft",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": false,
+            "header": "rgb(27, 27, 27)",
+            "rail": "rgb(25, 25, 25)",
+            "chat": "rgb(27, 27, 27)",
+            "accent": "#76a988",
+            "bubble": "rgb(53, 70, 58)",
+            "arrow": "rgb(53, 70, 58)",
+            "assistantButton": "rgb(8, 127, 75)"
+          },
+          "soft-light": {
+            "stored": {
+              "theme": "light",
+              "palette": "soft",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": false,
+            "header": "rgb(237, 243, 247)",
+            "rail": "rgb(220, 232, 237)",
+            "chat": "rgb(242, 247, 248)",
+            "accent": "#277f91",
+            "bubble": "rgb(205, 231, 237)",
+            "arrow": "rgb(205, 231, 237)",
+            "assistantButton": "rgb(8, 127, 75)"
+          },
+          "standard-dark": {
+            "stored": {
+              "theme": "dark",
+              "palette": "standard",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": true,
+            "header": "rgb(30, 30, 30)",
+            "rail": "rgb(43, 43, 43)",
+            "chat": "rgb(30, 30, 30)",
+            "accent": "#07c160",
+            "bubble": "rgb(7, 193, 96)",
+            "arrow": "rgb(7, 193, 96)",
+            "assistantButton": "rgb(7, 193, 96)"
+          },
+          "standard-light": {
+            "stored": {
+              "theme": "light",
+              "palette": "standard",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": true,
+            "header": "rgb(245, 245, 245)",
+            "rail": "rgb(230, 230, 230)",
+            "chat": "rgb(245, 245, 245)",
+            "accent": "#07c160",
+            "bubble": "rgb(149, 236, 105)",
+            "arrow": "rgb(149, 236, 105)",
+            "assistantButton": "rgb(7, 193, 96)"
+          }
+        },
+        "reloadPreserved": true
+      },
+      "analysisModelChecksPassed": 16,
+      "analysisModels": {
+        "synthetic": true,
+        "remoteCalls": 0,
+        "insightRequests": 1,
+        "portraitRequests": 1,
+        "sourceScopedCacheRestored": true,
+        "servicePresets": [
+          "deepseek",
+          "minimax",
+          "zhipu",
+          "kimi",
+          "siliconflow"
+        ],
+        "defaultContextTokens": 1000000
+      }
+    }
+  },
+  "portableFilesVerified": 8073,
+  "installerRuntimeFilesVerified": 8071,
+  "installerInstalledForTest": false,
+  "modelWeightsIncluded": false,
+  "userDataIncluded": false,
+  "signatureVerified": true,
+  "logoSourceSha256": "8de68cc05add06e54e69fd503915e2ea98c722878f5fdbe03f4c30b0bd930294",
+  "nativeIconSha256": "277ba13f394176d3f7b4744debf861eb7f1f77febd4884dac0a04b36bd19940f",
+  "publicKeySha256": "daf51be90b54a2a43e88b7235b91dd387a5e9ffe3beff54c8cc5c22693dae3de",
+  "liveWechatAndOnlineAnalysisTested": false,
+  "brand": {
+    "nameZh": "\u77e5\u610f AI",
+    "nameEn": "WechatVibe AI"
+  },
+  "assets": [
+    {
+      "file": "dist/releases-v1.2.2/WechatVibe-tauri2-1.2.2-windows-x64.zip",
+      "name": "WechatVibe-tauri2-1.2.2-windows-x64.zip",
+      "bytes": 195589973,
+      "sha256": "2a8ebaae12f53089074d222d86c706022c2841b51c2d5f298f09c72c93f0bcb8"
+    },
+    {
+      "file": "dist/releases-v1.2.2/WechatVibe-tauri2-1.2.2-windows-x64-setup.exe",
+      "name": "WechatVibe-tauri2-1.2.2-windows-x64-setup.exe",
+      "bytes": 132020637,
+      "sha256": "6a352c6d9a3c4958260bd3fcfb910aa7247dcc34acdbce9d8bc32845f7fa3d8c"
+    },
+    {
+      "file": "dist/releases-v1.2.2/update-manifest-tauri2.json",
+      "name": "update-manifest-tauri2.json",
+      "bytes": 358,
+      "sha256": "dccd410ded9275aacfe31f52f29fb2c71782c1c710862788ef7667ab244b5d7e"
+    },
+    {
+      "file": "dist/releases-v1.2.2/update-manifest-tauri2.sig",
+      "name": "update-manifest-tauri2.sig",
+      "bytes": 64,
+      "sha256": "23dd665df41ef526c70d9455362fba33a14d8b7d975cd0609ad8206ccddcf00b"
+    },
+    {
+      "file": "dist/releases-v1.2.2/SHA256SUMS-tauri2.txt",
+      "name": "SHA256SUMS-tauri2.txt",
+      "bytes": 293,
+      "sha256": "37bf9d7dd0fdcb3ef8804521f1b0016865aa849cdb5d2e4057971e9a3a39b31e"
+    },
+    {
+      "file": "dist/releases-v1.2.2/SHA256SUMS.txt",
+      "name": "SHA256SUMS.txt",
+      "bytes": 493,
+      "sha256": "811ec5087ed70f2c2b580b0d0ef03b402644360ffbd26b0136f9da4ef6c493fb"
+    }
+  ]
+}

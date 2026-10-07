@@ -7,6 +7,7 @@
   <link rel="icon" type="image/png" href="/assets/wechatvibe-icon.png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="ai-assistant.css">
+  <link rel="stylesheet" href="palette.css">
 </head>
 <body>
 
@@ -421,6 +422,14 @@
               <option value="light">浅色模式 (白天)</option>
             </select>
           </div>
+          <div class="settings-row">
+            <label for="selectColorPalette">界面配色</label>
+            <select id="selectColorPalette">
+              <option value="soft">柔和配色（当前风格）</option>
+              <option value="standard">标准配色（中性灰白 / 微信绿）</option>
+            </select>
+          </div>
+          <p class="assistant-settings-note">配色独立于深浅主题，选择后立即生效并保存。柔和配色保留灰绿与蓝灰；标准配色使用中性背景和微信绿。</p>
           <div class="settings-row">
             <span>界面缩放比例</span>
             <select id="selectZoomLevel">

@@ -1,6 +1,6 @@
 {
   "name": "wechatvibe-tauri2",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "private": true,
   "type": "module",
   "description": "知意 AI / WechatVibe AI：本机微信会话分析、AI 总结与回复辅助客户端",

@@ -121,6 +121,47 @@ let connectedBrowser;
   await page.waitForFunction(() => document.body.classList.contains("theme-light"));
   assert.equal(await page.locator(".desktop-titlebar").evaluate(node => getComputedStyle(node).backgroundColor), "rgb(237, 243, 247)");
   await screenshot("03-settings-light");
+  const paletteChecks = {};
+  for (const palette of ["soft", "standard"]) for (const theme of ["dark", "light"]) {
+    await page.locator("#selectColorPalette").selectOption(palette);
+    await page.locator("#selectThemeMode").selectOption(theme);
+    const appearance = await page.evaluate(() => {
+      const css = getComputedStyle(document.body);
+      const saved = JSON.parse(localStorage.getItem("real-ui-settings-1"));
+      const previous = chatState.messages;
+      renderMessages([{id:"synthetic-palette-check",side:"self",kind:"text",text:"合成配色验证",time:1760000000000}]);
+      const bubble = document.querySelector(".msg-item.outgoing .msg-bubble");
+      const result = {stored:saved,standard:document.body.classList.contains("palette-standard"),
+        header:getComputedStyle(document.querySelector(".desktop-titlebar")).backgroundColor,
+        rail:getComputedStyle(document.querySelector(".nav-rail")).backgroundColor,
+        chat:getComputedStyle(document.querySelector(".chat-pane")).backgroundColor,
+        accent:css.getPropertyValue("--color-green").trim(),
+        bubble:getComputedStyle(bubble).backgroundColor,
+        arrow:getComputedStyle(bubble,"::after").borderLeftColor,
+        assistantButton:getComputedStyle(document.getElementById("btnAssistantSummary")).backgroundColor};
+      renderMessages(previous);return result;
+    });
+    const expected = palette === "standard" ? theme === "light" ? {
+      header:"rgb(245, 245, 245)",rail:"rgb(230, 230, 230)",chat:"rgb(245, 245, 245)",bubble:"rgb(149, 236, 105)"} : {
+      header:"rgb(30, 30, 30)",rail:"rgb(43, 43, 43)",chat:"rgb(30, 30, 30)",bubble:"rgb(7, 193, 96)"} : theme === "light" ? {
+      header:"rgb(237, 243, 247)",rail:"rgb(220, 232, 237)",chat:"rgb(242, 247, 248)",bubble:"rgb(205, 231, 237)"} : {
+      header:"rgb(27, 27, 27)",rail:"rgb(25, 25, 25)",chat:"rgb(27, 27, 27)",bubble:"rgb(53, 70, 58)"};
+    for (const [field,value] of Object.entries(expected)) assert.equal(appearance[field],value,palette+"/"+theme+" "+field);
+    assert.equal(appearance.arrow,appearance.bubble);
+    assert.equal(appearance.stored.palette,palette);assert.equal(appearance.stored.theme,theme);
+    assert.equal(appearance.standard,palette==="standard");
+    assert.equal(appearance.assistantButton,palette==="standard"?"rgb(7, 193, 96)":"rgb(8, 127, 75)");
+    paletteChecks[palette+"-"+theme]=appearance;
+  }
+  await page.reload();
+  await page.waitForFunction(() => document.getElementById("startupOverlay").hidden && window.desktopHost && document.body.classList.contains("palette-standard"));
+  assert.equal(await page.locator("body").evaluate(node=>node.classList.contains("theme-light")),true);
+  await page.locator("#btnSettings").click();
+  assert.equal(await page.locator("#selectColorPalette").inputValue(),"standard");
+  await screenshot("14-standard-palette-settings");
+  record.colorPalette = {choices:["soft","standard"],fourAppearances:paletteChecks,reloadPreserved:true};
+  passed("Both palettes switch immediately in light/dark appearance, match bubble arrows and AI controls, persist, and restore after reload");
+  await page.locator("#selectColorPalette").selectOption("soft");
   await page.locator("#selectZoomLevel").selectOption("1.25");
   assert.ok(Math.abs(await page.locator(".desktop-titlebar").evaluate(node => node.getBoundingClientRect().height) - 36) < .1);
   await page.locator("#selectZoomLevel").selectOption("1.5");

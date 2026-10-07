@@ -64,7 +64,7 @@ PUBLIC_FILES = (
     "docs/verification/assistant-1.1.0/11-assistant-small-settings.png",
     "licenses/node-LICENSE-24.11.1.txt", "licenses/node-LICENSE-24.18.0.txt",
     "licenses/rust-runtime-notices.txt", "chatui/index.html",
-    "chatui/app.js", "chatui/ai-assistant.js", "chatui/ai-assistant.css", "chatui/desktop-host.js", "chatui/ui-shell.js", "chatui/message-labels.js", "chatui/message-insight-adapters.js", "chatui/view-state.js", "chatui/style.css", "chatui/kaomoji.js",
+    "chatui/app.js", "chatui/ai-assistant.js", "chatui/ai-assistant.css", "chatui/palette.css", "chatui/desktop-host.js", "chatui/ui-shell.js", "chatui/message-labels.js", "chatui/message-insight-adapters.js", "chatui/view-state.js", "chatui/style.css", "chatui/kaomoji.js",
     "chatui/data/analysis-catalog.json", "chatui/assets/wechatvibe-icon.png",
     "chatui/assets/wechatvibe-icon.ico", "analysis/analysis.ts",
     "analysis/model-connectors.ts", "analysis/ai-assistant.ts", "analysis/api-insights.ts",

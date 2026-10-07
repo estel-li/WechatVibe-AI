@@ -6,6 +6,18 @@ const vm = require("node:vm");
 
 const source = fs.readFileSync(path.join(__dirname, "../chatui/desktop-host.js"), "utf8");
 
+test("native theme bridge carries both palette and appearance for all four choices", () => {
+  const h = harness();
+  for (const palette of ["soft", "standard"]) for (const theme of ["dark", "light"])
+    assert.equal(h.window.desktopHost.setTheme(theme, palette), true);
+  assert.deepEqual(ordinaryCalls(h.calls), [
+    { command: "desktop_set_theme", args: { theme: "dark", palette: "soft" } },
+    { command: "desktop_set_theme", args: { theme: "light", palette: "soft" } },
+    { command: "desktop_set_theme", args: { theme: "dark", palette: "standard" } },
+    { command: "desktop_set_theme", args: { theme: "light", palette: "standard" } },
+  ]);
+});
+
 class Element {
   constructor() {
     this.listeners = new Map();
@@ -98,7 +110,7 @@ test("desktopHost preserves every preload method and sends the agreed Tauri comm
     "chooseModelDirectory", "chooseDataRoot", "checkForUpdates", "getUpdateState", "beginUpdate", "rollbackUpdate", "reportUiReady"])
     await host[method]();
   assert.deepEqual(ordinaryCalls(h.calls), [
-    { command: "desktop_set_theme", args: { theme: "light" } },
+    { command: "desktop_set_theme", args: { theme: "light", palette: "soft" } },
     { command: "desktop_copy_draft", args: { value: "你好\n新的一行" } },
     ...["desktop_exit_app", "desktop_get_app_version", "desktop_get_model_download_state",
       "desktop_download_laya_model", "desktop_choose_model_directory", "desktop_choose_data_root",
@@ -110,6 +122,7 @@ test("desktopHost preserves every preload method and sends the agreed Tauri comm
 test("invalid drafts and inactive user gestures never reach clipboard, directory pickers, or update actions", async () => {
   const h = harness(), host = h.window.desktopHost;
   assert.equal(host.setTheme("invalid"), false);
+  assert.equal(host.setTheme("light", "invalid"), false);
   for (const draft of ["", "   ", 42, "a".repeat(1_000_001)]) assert.equal(await host.copyDraft(draft), false);
   h.navigator.userActivation.isActive = false;
   assert.equal(await host.copyDraft("有效草稿"), false);

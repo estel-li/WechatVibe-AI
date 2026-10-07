@@ -61,7 +61,7 @@ function getVisibleUnreadCount(session) {
   if (hasNewTime || hasNewPreview) return serverUnread;
   return 0;
 }
-const defaults = { theme: "dark", zoom: "1.0", intent: true, backgroundAnalyze: false };
+const defaults = { theme: "dark", palette: "soft", zoom: "1.0", intent: true, backgroundAnalyze: false };
 const CURRENT_LABEL_SCHEMA = "generic-v9";
 const GENERIC_INTENT_LABELS = Object.freeze({
   small_talk: "闲聊", share_news: "分享", ask_question: "提问", seek_help: "求助", deny: "否认",
@@ -96,6 +96,7 @@ try { settingsState.settings = { ...defaults, ...JSON.parse(localStorage.getItem
 catch { settingsState.settings = { ...defaults }; }
 delete settingsState.settings.historyLimit;
 if (!["dark", "light"].includes(settingsState.settings.theme)) settingsState.settings.theme = "dark";
+if (!["soft", "standard"].includes(settingsState.settings.palette)) settingsState.settings.palette = "soft";
 if (!["0.9", "1.0", "1.1", "1.25", "1.5"].includes(settingsState.settings.zoom)) settingsState.settings.zoom = "1.0";
 if (typeof settingsState.settings.intent !== "boolean") settingsState.settings.intent = true;
 // Analysing every added chat in the background is opt-in: it can keep the CPU or GPU busy
@@ -3408,11 +3409,13 @@ async function loadProfile(member = "", retry = false) {
 }
 function applySettings() {
   document.body.classList.toggle("theme-light", settingsState.settings.theme === "light");
+  document.body.classList.toggle("palette-standard", settingsState.settings.palette === "standard");
   document.documentElement.classList.toggle("desktop-host", !!window.desktopHost);
   document.documentElement.style.zoom = settingsState.settings.zoom;
   document.documentElement.style.setProperty("--zoom-inverse", String(1 / Number(settingsState.settings.zoom)));
-  window.desktopHost?.setTheme?.(settingsState.settings.theme);
+  window.desktopHost?.setTheme?.(settingsState.settings.theme, settingsState.settings.palette);
   byId("selectThemeMode").value = settingsState.settings.theme;
+  byId("selectColorPalette").value = settingsState.settings.palette;
   byId("selectZoomLevel").value = settingsState.settings.zoom;
   byId("btnToggleIntent").classList.toggle("active", settingsState.settings.intent);
   byId("btnToggleIntent").setAttribute("aria-pressed", String(settingsState.settings.intent));
@@ -5068,7 +5071,7 @@ byId("btnToggleIntent").addEventListener("click", () => {
     else submitManualRecent();
   }
 });
-for (const [id, key] of [["selectThemeMode", "theme"], ["selectZoomLevel", "zoom"]]) byId(id).addEventListener("change", event => { settingsState.settings[key] = event.target.value; save(); applySettings(); });
+for (const [id, key] of [["selectThemeMode", "theme"], ["selectColorPalette", "palette"], ["selectZoomLevel", "zoom"]]) byId(id).addEventListener("change", event => { settingsState.settings[key] = event.target.value; save(); applySettings(); });
 byId("selectRuntimeProvider").addEventListener("change", event => { void changeRuntime(event.target.value); });
 byId("selectModelSource").addEventListener("change", () => {
   settingsState.modelSourceDraftDirty = true;

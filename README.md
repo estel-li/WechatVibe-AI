@@ -136,14 +136,23 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 
 </details>
 
+### 配色模式
+
+在「设置 → 通用设置 → 界面配色」选择 **柔和配色** 或 **标准配色**，立即生效并自动保存。配色与深浅主题独立，可组成四种外观，重启后保留选择。
+
+- **柔和配色**：保留原有深色灰绿、浅色蓝灰风格；旧设置及首次使用默认沿用此模式。
+- **标准配色**：中性灰白背景搭配微信绿，聊天气泡、按钮、AI 助手、人物画像面板和标题栏同步调整。
+
+1.2.2 安装版和绿色版均包含此选项。模型、Key、聊天数据和缩放设置不受配色切换影响。
+
 ## 下载安装
 
 从 [Releases](https://github.com/estel-li/WechatVibe-AI/releases/latest) 下载 Windows x64 安装版或绿色版。当前公开发行版为 **1.2.0**，提供大模型分析快捷选择并采用新的绿色双对话气泡 logo。完整变化见 [1.2.0 发布说明](docs/releases/1.2.0.md)。
 
 | 发行文件 | 使用方式 |
 | --- | --- |
-| [1.2.1 安装版](https://github.com/estel-li/WechatVibe-AI/releases/download/v1.2.1/WechatVibe-tauri2-1.2.1-windows-x64-setup.exe) | 运行安装向导，安装到当前用户目录 |
-| [1.2.1 绿色版](https://github.com/estel-li/WechatVibe-AI/releases/download/v1.2.1/WechatVibe-tauri2-1.2.1-windows-x64.zip) | 解压后启动，无需安装应用 |
+| [1.2.2 安装版](https://github.com/estel-li/WechatVibe-AI/releases/download/v1.2.2/WechatVibe-tauri2-1.2.2-windows-x64-setup.exe) | 运行安装向导，安装到当前用户目录 |
+| [1.2.2 绿色版](https://github.com/estel-li/WechatVibe-AI/releases/download/v1.2.2/WechatVibe-tauri2-1.2.2-windows-x64.zip) | 解压后启动，无需安装应用 |
 
 两个标准包都内置 Node/Python 运行环境，不含 Laya 模型权重；本地模式首次使用需在设置中下载模型。源码运行和自行打包见 [开发与构建](#开发与构建)。
 
@@ -194,7 +203,7 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 
 ## 软件更新
 
-应用保留「设置 → 关于 → 当前版本」的检查、下载、校验、安装与回退流程。**1.2.1 起检查 `estel-li/WechatVibe-AI` Releases。仓库改名后，1.2.0 及更早版本的更新器无法跟随旧 API 地址的重定向，请从本页手动下载 1.2.1 升级；之后恢复软件内更新。** 更新器使用本版本独立的 Ed25519 公钥，验证对应产品标识、签名及文件布局的 Tauri 2 资产。发布页附带 `update-manifest-tauri2.json`、签名与校验文件供更新器使用；手动安装仅需下载 EXE 或 ZIP。
+应用保留「设置 → 关于 → 当前版本」的检查、下载、校验、安装与回退流程。**1.2.1 起检查 `estel-li/WechatVibe-AI` Releases。仓库改名后，1.2.0 及更早版本的更新器无法跟随旧 API 地址的重定向，请从本页手动下载最新版本升级；1.2.1 及之后版本支持软件内更新。** 更新器使用本版本独立的 Ed25519 公钥，验证对应产品标识、签名及文件布局的 Tauri 2 资产。发布页附带 `update-manifest-tauri2.json`、签名与校验文件供更新器使用；手动安装仅需下载 EXE 或 ZIP。
 
 手动升级时，完全退出应用后使用同架构完整运行包，并保留该安装的 `client/.local` 和 `client/.models`。架构与维护说明见 [MIGRATION.md](MIGRATION.md) 和 [review 记录](docs/review-and-performance.md)，版本历史见 [CHANGELOG.md](CHANGELOG.md)。
 
@@ -308,10 +317,10 @@ npm test
 发行更新 ZIP 使用单独的 Tauri 产品标识与根目录，避免接收 Electron 架构更新包：
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/build-windows-release.py --input dist/WechatVibe-tauri2 --version 1.2.1 --output-dir dist/releases
+.\.venv\Scripts\python.exe scripts/build-windows-release.py --input dist/WechatVibe-tauri2 --version 1.2.2 --output-dir dist/releases
 ```
 
-输出 `WechatVibe-tauri2-1.2.1-windows-x64.zip`，内部根目录为 `tauri2-portable/`。`--with-model` 生成单独的 `-windows-x64-full.zip`。签名通过 `scripts/build-update-manifest.cjs` 管理，使用 `WECHATVIBE_UPDATE_SIGNING_KEY_FILE` 指定与应用公钥对应的 Ed25519 私钥；私钥仅在维护者本地保存，不进入 Git、stage、安装包或发布资产。
+输出 `WechatVibe-tauri2-1.2.2-windows-x64.zip`，内部根目录为 `tauri2-portable/`。`--with-model` 生成单独的 `-windows-x64-full.zip`。签名通过 `scripts/build-update-manifest.cjs` 管理，使用 `WECHATVIBE_UPDATE_SIGNING_KEY_FILE` 指定与应用公钥对应的 Ed25519 私钥；私钥仅在维护者本地保存，不进入 Git、stage、安装包或发布资产。
 
 迁移边界与验证记录见 [MIGRATION.md](MIGRATION.md)，启动诊断见 [docs/startup-diagnostics.md](docs/startup-diagnostics.md)，第三方许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 ### 业务结构与词库

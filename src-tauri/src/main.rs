@@ -104,14 +104,18 @@ fn desktop_set_theme(
     window: WebviewWindow,
     desktop: State<'_, Desktop>,
     theme: String,
+    palette: Option<String>,
 ) -> Result<bool, String> {
     trusted(&window, &desktop)?;
-    let (theme, color) = match theme.as_str() {
-        "light" => (
+    let palette = palette.as_deref().unwrap_or("soft");
+    let (theme, color) = match (theme.as_str(), palette) {
+        ("light", "soft") => (
             tauri::Theme::Light,
             tauri::window::Color(237, 243, 247, 255),
         ),
-        "dark" => (tauri::Theme::Dark, tauri::window::Color(27, 27, 27, 255)),
+        ("dark", "soft") => (tauri::Theme::Dark, tauri::window::Color(27, 27, 27, 255)),
+        ("light", "standard") => (tauri::Theme::Light, tauri::window::Color(245, 245, 245, 255)),
+        ("dark", "standard") => (tauri::Theme::Dark, tauri::window::Color(30, 30, 30, 255)),
         _ => return Ok(false),
     };
     window.set_theme(Some(theme)).map_err(|e| e.to_string())?;

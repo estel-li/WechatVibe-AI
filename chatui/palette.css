@@ -1,0 +1,93 @@
+/* An opt-in standard palette. Unselected installations retain the soft theme. */
+body.palette-standard {
+  --color-green: #07c160;
+  --text-green: #07c160;
+  --bg-rail: #2b2b2b;
+  --bg-rail-hover: #363636;
+  --bg-session: #2e2e2e;
+  --bg-session-hover: #363636;
+  --bg-session-active: #3d3d3d;
+  --bg-chat: #1e1e1e;
+  --bg-chat-header: #1e1e1e;
+  --bg-input: #1e1e1e;
+  --bg-search: #252525;
+  --bg-bubble-left: #2e2e2e;
+  --bg-bubble-right: #07c160;
+  --border-color: #383838;
+  --border-subtle: #2d2d2d;
+  --text-main: #dfdfdf;
+  --text-secondary: #a6a6a6;
+  --text-muted: #8c8c8c;
+  --scrollbar-thumb: #454545;
+  --scrollbar-hover: #585858;
+  --bg-inset: #292929;
+}
+body.theme-light.palette-standard {
+  --bg-rail: #e6e6e6;
+  --bg-rail-hover: #dcdcdc;
+  --bg-session: #ececec;
+  --bg-session-hover: #e0e0e0;
+  --bg-session-active: #c7c7c7;
+  --bg-chat: #f5f5f5;
+  --bg-chat-header: #f5f5f5;
+  --bg-input: #f5f5f5;
+  --bg-search: #e2e2e2;
+  --bg-bubble-left: #ffffff;
+  --bg-bubble-right: #95ec69;
+  --border-color: #d9d9d9;
+  --border-subtle: #e2e2e2;
+  --text-main: #191919;
+  --text-secondary: #707070;
+  --text-muted: #858585;
+  --scrollbar-thumb: #c8c8c8;
+  --scrollbar-hover: #b0b0b0;
+  --bg-inset: #f7f7f7;
+}
+html.desktop-host body.palette-standard .desktop-titlebar {
+  background: var(--bg-chat-header);
+  color: var(--text-main);
+}
+body.palette-standard .msg-item.outgoing .msg-bubble { color: #101010; }
+body.palette-standard .msg-item.outgoing .msg-bubble::after {
+  border-color: transparent transparent transparent var(--bg-bubble-right);
+}
+body.palette-standard .chat-status-pill,
+body.palette-standard .chat-status-pill:hover { background: var(--bg-search); }
+body.palette-standard .chat-status-pill .kaomoji-pill-icon { color: var(--text-main); }
+body.palette-standard .toolbar-text-btn.active,
+body.palette-standard .member-chip.active { background: rgba(7, 193, 96, .12); }
+body.palette-standard .settings-modal-card,
+body.palette-standard .update-modal-card { background: var(--bg-search); border-color: var(--border-color); }
+body.theme-light.palette-standard .settings-modal-card,
+body.theme-light.palette-standard .update-modal-card { background: #ffffff; }
+body.palette-standard .settings-sidebar { background: var(--bg-session); border-color: var(--border-color); }
+body.palette-standard .settings-tab-btn:hover,
+body.palette-standard .settings-tab-btn.active { background: var(--bg-session-hover); }
+body.palette-standard .settings-tab-btn.active { color: var(--color-green); border-left-color: var(--color-green); }
+body.palette-standard .settings-row select { background: var(--bg-input); color: var(--text-main); border-color: var(--border-color); }
+body.palette-standard .btn-send.ready,
+body.palette-standard .btn-read-chatlog,
+body.palette-standard .settings-toggle.on,
+body.palette-standard .assistant-overlay button.assistant-primary,
+body.palette-standard .model-source-primary,
+body.palette-standard .update-modal-actions .update-primary-button {
+  background: var(--color-green);
+  border-color: var(--color-green);
+  color: #101010;
+}
+body.palette-standard .btn-send.ready:hover,
+body.palette-standard .btn-read-chatlog:hover,
+body.palette-standard .assistant-overlay button.assistant-primary:hover,
+body.palette-standard .model-source-primary:hover { background: #06ad56; border-color: #06ad56; }
+body.palette-standard .btn-read-chatlog svg { fill: currentColor; }
+body.palette-standard .avatar-fallback { background: linear-gradient(145deg, #626262, #414141); color: #ffffff; }
+body.palette-standard .hero-affection-box,
+body.palette-standard .bot-summary-text,
+body.palette-standard .icebreaker-box,
+body.palette-standard .tone-pill,
+body.palette-standard .trait-bar-track { background: var(--bg-inset); border-color: var(--border-color); }
+body.palette-standard .keyword-tag { background: var(--bg-search); border-color: var(--border-color); color: var(--text-main); }
+body.palette-standard .about-card,
+body.palette-standard .about-row,
+body.palette-standard .about-version-row { border-color: var(--border-color); }
+body.palette-standard .inline-intent-row .intent-label { color: var(--text-secondary); }

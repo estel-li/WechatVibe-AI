@@ -61,9 +61,9 @@
         if ((!updateValidationMode && !updateFinalReadyMode) || !isTop()) return Promise.resolve(false);
         return bridgeReady.then(() => invoke("desktop_report_ui_ready"));
       },
-      setTheme(theme) {
-        if (!isTop() || (theme !== "dark" && theme !== "light")) return false;
-        void invoke("desktop_set_theme", { theme }).catch(warn);
+      setTheme(theme, palette = "soft") {
+        if (!isTop() || !["dark", "light"].includes(theme) || !["soft", "standard"].includes(palette)) return false;
+        void invoke("desktop_set_theme", { theme, palette }).catch(warn);
         return true;
       },
       copyDraft(value) {
