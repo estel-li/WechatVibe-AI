@@ -1,4 +1,4 @@
-# 分析模型快捷选择（1.2.0 开发版）
+# 分析模型快捷选择（1.2.0）
 
 聊天和人物画像页面上方共用“分析模型”选择栏。选择本地 Laya 或已配置的大语言模型后，消息意图、情绪标签与人物画像使用该模型。选择作用于当前安装的分析来源，AI 总结与“帮我回复”使用各自独立的助手配置。
 
@@ -18,7 +18,7 @@ Node 回归通过494项，其中新增7项验证覆盖未配置入口、失败�
 
 相关 Python 回归通过98项，覆盖配置、消息分析、画像统计和真实HTTP/SDK链路；类型检查与运行包边界检查通过。
 
-原生 Tauri / WebView2 测试通过快捷入口调用真实 HTTP、Python 后端、Node 分析服务和 OpenAI SDK，模型服务和聊天数据均为本机合成 fixture。验证大模型意图结果、共享评分规则的人物画像、本地/大模型切换、来源缓存恢复而不重复请求模型、从两页打开设置和小窗口布局。报告见 [原生验证](verification/analysis-models/verification.json)。未连接真实微信账号或外部模型服务。
+原生 Tauri / WebView2 测试通过快捷入口调用真实 HTTP、Python 后端、Node 分析服务和 OpenAI SDK，模型服务和聊天数据均为本机合成 fixture。验证大模型意图结果、共享评分规则的人物画像、本地/大模型切换、来源缓存恢复而不重复请求模型、从两页打开设置和小窗口布局。首次开发验证报告见 [原生验证](verification/analysis-models/verification.json)，正式发行包的检查见 [1.2.0 发行验证](https://github.com/estel-li/WechatVibe-tauri2/blob/v1.2.0/docs/verification/release-1.2.0.json)。未连接真实微信账号或外部模型服务。
 
 ![大模型意图分析，消息及模型服务均为合成测试](verification/analysis-models/12-quick-llm-intent.png)
 
@@ -26,7 +26,7 @@ Node 回归通过494项，其中新增7项验证覆盖未配置入口、失败�
 
 ```powershell
 node --test tests/model-source-settings.test.cjs tests/model-insights-ui.test.cjs tests/api-portrait-ui.test.cjs
-python scripts/verify-analysis-models.py --exe dist/WechatVibe-AI-1.2.0-dev/WechatVibe.exe
+python scripts/verify-analysis-models.py --exe dist/WechatVibe-AI-1.2.0-release/WechatVibe.exe
 ```
 
-验证脚本使用当前源码界面与包内运行时、分析服务，创建独立合成数据目录，测试关闭自己启动的应用和服务并恢复剪贴板。1.1.0正式发行包尚未包含快捷栏；现有版本仍可从通用设置选择本地或API模型。
+验证脚本使用当前源码界面与包内运行时、分析服务，创建独立合成数据目录，测试关闭自己启动的应用和服务并恢复剪贴板。1.2.0安装版和绿色版均包含快捷栏，下载与升级见 [发布页](https://github.com/estel-li/WechatVibe-tauri2/releases/tag/v1.2.0)。

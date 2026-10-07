@@ -30,11 +30,11 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 
 ## 功能介绍
 
-### 快捷选择分析模型（1.2.0 开发版）
+### 快捷选择分析模型
 
 聊天和人物画像页面顶部提供“分析模型”选择栏，可切换 **本地 Laya** 和 **已配置的大语言模型**，意图识别、情绪标签与人物画像共用当前选择。在“大模型设置”配置 API、获取模型并保存后，同一服务中已获取的模型也可从这里选择；尚未确认上下文容量的模型会先打开配置页。
 
-切换模型会停止旧来源的界面任务，并读取该模型自己的分析缓存。AI 总结与“帮我回复”继续使用独立助手配置。此入口在当前源码和 1.2.0 开发构建中提供，已发布的 1.1.0 可通过通用设置选择分析来源。使用与验证见 [分析模型快捷选择](docs/analysis-models.md)。
+切换模型会停止旧来源的界面任务，并读取该模型自己的分析缓存。AI 总结与“帮我回复”继续使用独立助手配置。从1.2.0起，安装版和绿色版均提供此入口。使用与验证见 [分析模型快捷选择](docs/analysis-models.md)。
 
 ### AI 聊天总结与帮我回复
 
@@ -137,12 +137,12 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 
 ## 下载安装
 
-从 [Releases](https://github.com/estel-li/WechatVibe-tauri2/releases/latest) 下载 Windows x64 安装版或绿色版。当前公开发行版为 **1.1.0**，包含 AI 对话助手、长聊天修复和双语品牌。完整变化见 [1.1.0 发布说明](docs/releases/1.1.0.md)。
+从 [Releases](https://github.com/estel-li/WechatVibe-tauri2/releases/latest) 下载 Windows x64 安装版或绿色版。当前公开发行版为 **1.2.0**，提供大模型分析快捷选择并采用新的绿色双对话气泡 logo。完整变化见 [1.2.0 发布说明](docs/releases/1.2.0.md)。
 
 | 发行文件 | 使用方式 |
 | --- | --- |
-| [1.1.0 安装版](https://github.com/estel-li/WechatVibe-tauri2/releases/download/v1.1.0/WechatVibe-tauri2-1.1.0-windows-x64-setup.exe) | 运行安装向导，安装到当前用户目录 |
-| [1.1.0 绿色版](https://github.com/estel-li/WechatVibe-tauri2/releases/download/v1.1.0/WechatVibe-tauri2-1.1.0-windows-x64.zip) | 解压后启动，无需安装应用 |
+| [1.2.0 安装版](https://github.com/estel-li/WechatVibe-tauri2/releases/download/v1.2.0/WechatVibe-tauri2-1.2.0-windows-x64-setup.exe) | 运行安装向导，安装到当前用户目录 |
+| [1.2.0 绿色版](https://github.com/estel-li/WechatVibe-tauri2/releases/download/v1.2.0/WechatVibe-tauri2-1.2.0-windows-x64.zip) | 解压后启动，无需安装应用 |
 
 两个标准包都内置 Node/Python 运行环境，不含 Laya 模型权重；本地模式首次使用需在设置中下载模型。源码运行和自行打包见 [开发与构建](#开发与构建)。
 
@@ -307,10 +307,10 @@ npm test
 发行更新 ZIP 使用单独的 Tauri 产品标识与根目录，避免接收 Electron 架构更新包：
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/build-windows-release.py --input dist/WechatVibe-tauri2 --version 1.1.0 --output-dir dist/releases
+.\.venv\Scripts\python.exe scripts/build-windows-release.py --input dist/WechatVibe-tauri2 --version 1.2.0 --output-dir dist/releases
 ```
 
-输出 `WechatVibe-tauri2-1.1.0-windows-x64.zip`，内部根目录为 `tauri2-portable/`。`--with-model` 生成单独的 `-windows-x64-full.zip`。签名通过 `scripts/build-update-manifest.cjs` 管理，使用 `WECHATVIBE_UPDATE_SIGNING_KEY_FILE` 指定与应用公钥对应的 Ed25519 私钥；私钥仅在维护者本地保存，不进入 Git、stage、安装包或发布资产。
+输出 `WechatVibe-tauri2-1.2.0-windows-x64.zip`，内部根目录为 `tauri2-portable/`。`--with-model` 生成单独的 `-windows-x64-full.zip`。签名通过 `scripts/build-update-manifest.cjs` 管理，使用 `WECHATVIBE_UPDATE_SIGNING_KEY_FILE` 指定与应用公钥对应的 Ed25519 私钥；私钥仅在维护者本地保存，不进入 Git、stage、安装包或发布资产。
 
 迁移边界与验证记录见 [MIGRATION.md](MIGRATION.md)，启动诊断见 [docs/startup-diagnostics.md](docs/startup-diagnostics.md)，第三方许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 ### 业务结构与词库

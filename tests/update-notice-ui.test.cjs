@@ -55,7 +55,7 @@ function hasClass(node, name) {
 }
 
 function harness(options = {}) {
-  const calls = { checks: 0, downloads: 0, fetches: 0 };
+  const calls = { checks: 0, downloads: 0, fetches: 0, modelLoads: 0 };
   const timers = [];
   const nodes = new Map();
   const byId = id => {
@@ -83,11 +83,12 @@ function harness(options = {}) {
   };
   const context = vm.createContext({
     URL, byId,
+    settingsState: { modelSourceBusy: !!options.modelSourceBusy },
     text: (id, value) => { byId(id).textContent = value == null ? "" : String(value); },
     setTimeout(fn, delay) { timers.push({ fn, delay, kind: "timeout" }); return timers.length; },
     setInterval(fn, delay) { timers.push({ fn, delay, kind: "interval" }); return timers.length; },
     clearTimeout() {}, clearInterval() {},
-    loadRuntime() {}, loadModelSource() {}, loadLocalModel() {}, loadDataRoot() {},
+    loadRuntime() {}, loadModelSource() { calls.modelLoads++; }, loadLocalModel() {}, loadDataRoot() {},
     showLocalModelDownload() {},
     fetch() { calls.fetches++; throw new Error("update check must not use the network"); },
     document: {
@@ -172,6 +173,16 @@ it("opens the about tab and the update modal from the notice", async () => {
   assert.equal(ui.calls.checks, 0);
   assert.equal(ui.calls.downloads, 0);
   assert.equal(ui.calls.fetches, 0);
+});
+
+it("opening updates during a model switch does not start a stale model-source read", async () => {
+  const ui = harness({ modelSourceBusy: true });
+  await ui.settle();
+  ui.notice.click();
+  await ui.settle();
+  assert.equal(hasClass(ui.byId("settingsModal"), "show"), true);
+  assert.equal(hasClass(ui.byId("updateModal"), "show"), true);
+  assert.equal(ui.calls.modelLoads, 0);
 });
 
 it("runs one startup check after the UI is ready, without network or a download", async () => {

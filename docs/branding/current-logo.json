@@ -1,0 +1,39 @@
+{
+  "selectedOn": "2026-10-07",
+  "source": "maintainer-provided image",
+  "sourceDimensions": [
+    1254,
+    1254
+  ],
+  "sourceSha256": "8de68cc05add06e54e69fd503915e2ea98c722878f5fdbe03f4c30b0bd930294",
+  "nativeConversion": "Tauri CLI icon",
+  "icoFrames": [
+    [
+      16,
+      16
+    ],
+    [
+      24,
+      24
+    ],
+    [
+      32,
+      32
+    ],
+    [
+      48,
+      48
+    ],
+    [
+      64,
+      64
+    ],
+    [
+      256,
+      256
+    ]
+  ],
+  "icoSha256": "277ba13f394176d3f7b4744debf861eb7f1f77febd4884dac0a04b36bd19940f",
+  "appAsset": "chatui/assets/wechatvibe-icon.png",
+  "readmeAsset": "docs/assets/readme/wechatvibe-logo.png"
+}

@@ -19,6 +19,10 @@ let connectedBrowser;
   page.on("pageerror", error => errors.push(error.message));
   await page.waitForFunction(() => window.desktopHost && document.getElementById("startupOverlay").hidden);
   const record = { synthetic: true, executableSha256: process.env.WECHATVIBE_SMOKE_EXE_SHA256, checks: [] };
+  const logo = Buffer.from(await (await fetch(new URL("/assets/wechatvibe-icon.png", page.url()))).arrayBuffer());
+  record.logoSha256 = require("node:crypto").createHash("sha256").update(logo).digest("hex");
+  if (process.env.WECHATVIBE_EXPECTED_LOGO_SHA256)
+    assert.equal(record.logoSha256, process.env.WECHATVIBE_EXPECTED_LOGO_SHA256, "The native app must serve the selected logo");
   const passed = label => { record.checks.push(label); console.log("PASS " + label); };
   const screenshot = async name => {
     await page.waitForTimeout(400);
