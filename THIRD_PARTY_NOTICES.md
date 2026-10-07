@@ -42,7 +42,7 @@ Windows Rust 直接与传递依赖的许可证全文及出处见 [licenses/rust-
 
 ## README 演示头像
 
-README 两张演示图中的头像来自 Lisa Wischofsky 的 [Adventurer](https://www.dicebear.com/styles/adventurer/) 插画，采用 [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/)（CC BY 4.0）。演示通过 DiceBear 组合角色、调整配色，并在应用截图中缩放展示。人物、对白及分析数值为虚构演示；头像素材不适用本项目代码的 Apache-2.0 许可，继续分发时须保留上述署名和许可说明。
+仓库历史 README 演示素材中的头像来自 Lisa Wischofsky 的 [Adventurer](https://www.dicebear.com/styles/adventurer/) 插画，采用 [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/)（CC BY 4.0）。历史演示通过 DiceBear 组合角色、调整配色，并在截图中缩放展示；继续分发相关历史素材时须保留上述署名和许可说明。2026-10-07 更新的 README 软件截图使用应用自身的文字头像，人物、对白及分析结果均为虚拟演示数据。
 
 ## ONNX Runtime 的 MIT 许可证
 

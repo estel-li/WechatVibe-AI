@@ -24,9 +24,9 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 - **选择自己的模型**：消息分析可使用本地 Laya 或 API；对话助手独立接入 DeepSeek 或自定义服务。支持 Chat Completions、Responses、Anthropic、Gemini 和 Ollama 兼容接口。
 - **保留操作决定权**：总结与回复由你主动发起，结果可复制或放入草稿；应用不会自动发送微信消息。
 
-![API 模式下的消息情绪与意图识别](docs/assets/readme/chat-demo.png)
+![消息情绪与意图识别、聊天工具栏和回复草稿](docs/assets/readme/chat-demo.png)
 
-<sub>演示中的聊天与分析结果为虚构数据，素材来源与许可见页面底部。</sub>
+<sub>本页截图来自知意 AI / WechatVibe AI 的 Windows 实际界面。联系人、聊天、标签、画像和 AI 输出均为虚拟演示数据。</sub>
 
 ## 功能介绍
 
@@ -43,7 +43,24 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 
 本地 Laya 继续负责原有本地分析；上述 AI 助手功能使用用户主动配置的 API 或本地兼容接口。临时测试密钥不会预置到源码或发行包。
 
-使用与验证说明见 [AI 对话助手](docs/ai-assistant.md)，包括完整回归、真实 DeepSeek 合成对话测试及 18 项原生桌面验证。
+使用与验证说明见 [AI 对话助手](docs/ai-assistant.md)，包括完整回归、真实 DeepSeek 合成对话测试及 20 项原生桌面验证。
+
+**AI 聊天总结**：整理主要话题、已确认的安排和待办，显示本次覆盖的消息数量。
+
+![AI 聊天总结：整理会话主题、约定和待办](docs/assets/readme/ai-summary-demo.png)
+
+**帮我回复**：选择与对方的关系，补充自己的意思，生成回复草稿。不满意可以重新生成，满意后复制或放入草稿框，由你检查后使用。
+
+![AI 智能回复：普通朋友关系、可编辑提示词和回复草稿](docs/assets/readme/ai-reply-demo.png)
+
+<details>
+<summary>截图：指定时间总结与独立助手模型设置</summary>
+
+![指定时间内的聊天 AI 总结](docs/assets/readme/ai-time-summary-demo.png)
+
+![AI 对话助手：DeepSeek、1M 上下文和自定义提示词](docs/assets/readme/ai-assistant-settings-demo.png)
+
+</details>
 
 ### 消息情绪与意图
 
@@ -104,7 +121,7 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 <details>
 <summary>截图：模型设置与缓存管理</summary>
 
-![本地 Laya 下载与运行设备选择](docs/assets/readme/local-model-demo.png)
+![本地 Laya、运行设备与并行设置](docs/assets/readme/local-model-demo.png)
 
 ![API 服务地址、协议、模型与上下文设置](docs/assets/readme/api-settings-demo.png)
 
@@ -331,7 +348,7 @@ npm test
 
 项目采用 [Apache-2.0](LICENSE)。Laya、模型与第三方依赖的来源及许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
-演示头像使用 Lisa Wischofsky 的 [Adventurer](https://www.dicebear.com/styles/adventurer/) 插画，经 DiceBear 组合并调整配色，采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)；该素材许可独立于项目代码许可。
+本页新版截图使用软件自身的文字头像。仓库历史演示素材中使用的 Lisa Wischofsky [Adventurer](https://www.dicebear.com/styles/adventurer/) 头像采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)，其素材许可独立于项目代码许可。
 
 ## 交流与反馈
 
@@ -345,7 +362,7 @@ npm test
 
 本项目的基本聊天读取、情绪与意图分析、人物及群聊画像功能，fork 自 [tswawa/WechatVibe v1.2.4](https://github.com/tswawa/WechatVibe/releases/tag/v1.2.4)。此后的 Tauri 2 架构、界面与性能改进、AI 聊天总结和帮我回复等功能由 [estel-li](https://github.com/estel-li) 持续开发维护。保留原代码中的作者、来源声明、Apache-2.0 许可及第三方素材署名。
 
-- **文档与演示素材**：基础功能说明参考上游 [README（提交 `99f42f0`）](https://github.com/tswawa/WechatVibe/blob/99f42f07f63e6b2fbceab9fb7020cdb4d98850c3/README.md)，参考日期 2026-10-07；部分基础功能截图沿用其合成演示素材。该提交是文档参考版本，不表示本地源码与该提交完全一致。
+- **文档与截图**：基础功能说明参考上游 [README（提交 `99f42f0`）](https://github.com/tswawa/WechatVibe/blob/99f42f07f63e6b2fbceab9fb7020cdb4d98850c3/README.md)，参考日期 2026-10-07。本页功能截图已替换为知意 AI 实际 Tauri 界面的合成数据截图，截图脚本与来源说明见 [截图记录](docs/verification/readme-screenshots.md)。该提交是文档参考版本，不表示本地源码与该提交完全一致。
 - **微信读取**：[fanyuantaier/wechatauto-replica](https://github.com/fanyuantaier/wechatauto-replica)。
 - **分析模型与适配**：[Laya](https://github.com/NandhaKishorM/laya)、[mizchi/laya-mlx](https://github.com/mizchi/laya-mlx)、[mizchi/laya-multilingual-onnx](https://huggingface.co/mizchi/laya-multilingual-onnx)。
 - **上游贡献者**：感谢上游作者与所有贡献者，具体贡献见 [上游致谢](https://github.com/tswawa/WechatVibe#致谢)。

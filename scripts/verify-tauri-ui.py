@@ -127,6 +127,8 @@ def main():
     parser.add_argument("--node", default="node")
     parser.add_argument("--playwright-root", type=Path, help="node_modules directory containing playwright")
     parser.add_argument("--output", type=Path, default=ROOT / "docs/verification")
+    parser.add_argument("--capture-readme", action="store_true",
+                        help="Capture the real app UI with synthetic-only documentation fixtures")
     parser.add_argument("--native-dialogs", action="store_true")
     parser.add_argument("--crash-worker", action="store_true", help="Verify native fallback shutdown after an isolated Node worker crash")
     parser.add_argument("--keep-open", action="store_true", help="Keep isolated app open for native Computer Use verification")
@@ -175,7 +177,13 @@ def main():
                    "WECHATVIBE_SMOKE_EXE_SHA256": hashlib.sha256(executable.read_bytes()).hexdigest(),
                    "WECHATVIBE_SMOKE_DIALOGS": "1" if args.native_dialogs else "0",
                    "WECHATVIBE_SMOKE_CRASH": "1" if args.crash_worker else "0",
-                   "WECHATVIBE_SMOKE_KEEP_OPEN": "1" if args.keep_open else "0"}
+                   "WECHATVIBE_SMOKE_KEEP_OPEN": "1" if args.keep_open else "0",
+                   "WECHATVIBE_README_SCREENSHOTS": "1" if args.capture_readme else "0"}
+    if args.capture_readme:
+        if args.crash_worker or args.native_dialogs or args.keep_open:
+            parser.error("README capture cannot use crash, native-dialog or keep-open modes")
+        environment.pop("WECHATVIBE_SMOKE_ASSISTANT_URL", None)
+        environment.pop("WECHATVIBE_SMOKE_AI_FIXTURE", None)
     if args.playwright_root:
         environment["NODE_PATH"] = str(args.playwright_root.resolve())
     for name in ["WECHATVIBE_UPDATE_VALIDATE", "WECHATVIBE_UPDATE_READY_FILE", "WECHATVIBE_UPDATE_READY_NONCE",
@@ -201,7 +209,8 @@ def main():
             time.sleep(.1)
         else:
             raise RuntimeError("WebView2 did not expose its isolated CDP port")
-        result = subprocess.run([args.node, str(ROOT / "scripts/verify-tauri-ui.cjs")], env=environment, cwd=ROOT, timeout=300)
+        ui_script = "capture-readme-ui.cjs" if args.capture_readme else "verify-tauri-ui.cjs"
+        result = subprocess.run([args.node, str(ROOT / "scripts" / ui_script)], env=environment, cwd=ROOT, timeout=300)
         if result.returncode:
             raise RuntimeError("Tauri UI smoke test failed")
         if args.keep_open:
