@@ -30,9 +30,9 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 
 ## 功能介绍
 
-### AI 聊天总结与帮我回复（1.1.0 开发版）
+### AI 聊天总结与帮我回复
 
-当前源码新增 AI 助手功能，GitHub 已发布的 1.0.0 运行包尚不包含这些功能。
+从 1.1.0 起，安装版和绿色版均提供 AI 对话助手。
 
 - **入口**：当前聊天下方，“意图识别”“人物画像”右边新增“AI 总结”和“帮我回复”。无需选择会话时，也能在「设置 → 通用设置 → AI 对话助手」先配置模型。
 - **独立模型设置**：提供 DeepSeek 官方预设以及自定义 API，支持获取模型列表、手动输入模型、测试连接和设置上下文容量。助手配置独立于消息意图和画像分析；不会因为启用助手而自动将其他聊天送到 API。
@@ -131,12 +131,12 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 
 ## 下载安装
 
-从 [Releases](https://github.com/estel-li/WechatVibe-tauri2/releases/latest) 下载 Windows x64 安装版或绿色版。当前公开发行版为 **1.0.0**；AI 对话助手在 **1.1.0 开发版**中提供，暂未发布到 Releases。
+从 [Releases](https://github.com/estel-li/WechatVibe-tauri2/releases/latest) 下载 Windows x64 安装版或绿色版。当前公开发行版为 **1.1.0**，包含 AI 对话助手、长聊天修复和双语品牌。完整变化见 [1.1.0 发布说明](docs/releases/1.1.0.md)。
 
 | 发行文件 | 使用方式 |
 | --- | --- |
-| [1.0.0 安装版](https://github.com/estel-li/WechatVibe-tauri2/releases/download/v1.0.0/WechatVibe-tauri2-1.0.0-windows-x64-setup.exe) | 运行安装向导，安装到当前用户目录 |
-| [1.0.0 绿色版](https://github.com/estel-li/WechatVibe-tauri2/releases/download/v1.0.0/WechatVibe-tauri2-1.0.0-windows-x64.zip) | 解压后启动，无需安装应用 |
+| [1.1.0 安装版](https://github.com/estel-li/WechatVibe-tauri2/releases/download/v1.1.0/WechatVibe-tauri2-1.1.0-windows-x64-setup.exe) | 运行安装向导，安装到当前用户目录 |
+| [1.1.0 绿色版](https://github.com/estel-li/WechatVibe-tauri2/releases/download/v1.1.0/WechatVibe-tauri2-1.1.0-windows-x64.zip) | 解压后启动，无需安装应用 |
 
 两个标准包都内置 Node/Python 运行环境，不含 Laya 模型权重；本地模式首次使用需在设置中下载模型。源码运行和自行打包见 [开发与构建](#开发与构建)。
 

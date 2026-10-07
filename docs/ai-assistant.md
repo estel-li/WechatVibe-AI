@@ -1,6 +1,6 @@
-# 知意 AI 对话助手（1.1.0 开发版）
+# 知意 AI 对话助手（1.1.0）
 
-知意 AI（WechatVibe AI）在“意图识别”“人物画像”右侧提供“AI 总结”和“帮我回复”，也可从“设置 → 通用设置 → AI 对话助手”预先配置。当前为本地开发构建，GitHub 已发布的 1.0.0 安装版和绿色版尚不包含此功能。
+知意 AI（WechatVibe AI）在“意图识别”“人物画像”右侧提供“AI 总结”和“帮我回复”，也可从“设置 → 通用设置 → AI 对话助手”预先配置。[1.1.0 安装版和绿色版](https://github.com/estel-li/WechatVibe-tauri2/releases/tag/v1.1.0)均包含此功能。
 
 ## 使用
 
@@ -34,7 +34,7 @@ DeepSeek 官方 `deepseek-flash` 和 `deepseek-v4-pro` 的上下文为 1M tokens
 
 打包后的 Tauri/WebView2 使用包内 Python、Node、UI 和服务，接入本地合成模型服务进行验证，20项原生检查通过。验证包括双语品牌、完整1305条历史（含最早的未加载消息）、首段截断后的完整恢复、时间范围10条、总结/回复的六个快捷时间按钮、五种关系、自定义要求、重新生成、原生剪贴板、插入草稿、取消与切换会话、获取模型、测试连接、提示词保存、焦点及小窗口缩放。修复验证记录见 [长历史与品牌验证](verification/assistant-long-history/verification.json)，此前首次功能验证见 [原记录](verification/assistant-1.1.0/verification.json)。
 
-本地新构建位于 `dist/WechatVibe-AI-1.1.0/`，保留完整目录后启动 `WechatVibe.exe`。该包为1.1.0，包含运行时。原运行目录及其账号数据保持原位；新构建不复制账号数据或模型权重。
+发布包包含 Node/Python 运行时，绿色版保留完整目录后启动 `WechatVibe.exe`；本地构建也可以通过 `scripts/build-tauri-portable.py` 生成。升级请保留原有 `client/.local` 与 `client/.models`，详见 [发布说明](https://github.com/estel-li/WechatVibe-tauri2/releases/tag/v1.1.0)。
 
 ```powershell
 # 完整回归

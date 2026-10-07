@@ -1,6 +1,6 @@
 # 更新日志
 
-## 1.1.0 — 开发中
+## [1.1.0](https://github.com/estel-li/WechatVibe-tauri2/releases/tag/v1.1.0) — 2026-10-07
 
 - 产品名称更新为“知意 AI / WechatVibe AI”，采用青金罗盘图标。
 - 修复长对话首段整理超过输出上限时失败：增加压缩目标和输出预算，内部笔记截断后完整重做一次，保留全部消息覆盖。
@@ -13,7 +13,7 @@
 - API Key 使用 Windows DPAPI 加密保存，取消、关闭或切换会话后清除失效输出。
 - 完整回归、真实 DeepSeek 合成对话测试和打包后的 WebView2 操作验证通过；记录见 [AI 助手验证说明](docs/ai-assistant.md)。
 
-此版本目前为本地开发构建，已发布的 1.0.0 包保持原内容。
+提供 Windows x64 安装版和绿色版，附带签名更新清单。下载与升级见 [1.1.0 发布说明](docs/releases/1.1.0.md)。首页截图使用实际软件界面与虚拟数据，新增 AI 总结、回复草稿和独立模型配置示例。
 
 ## [1.0.0](https://github.com/estel-li/WechatVibe-tauri2/releases/tag/v1.0.0) — 2026-10-07
 
