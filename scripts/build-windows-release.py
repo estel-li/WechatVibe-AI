@@ -65,6 +65,7 @@ ALLOWED_APP_IMAGES = {
 ALLOWED_APP_IMAGES.update({
     ("client", "docs", "verification", edition, filename)
     for edition, filenames in {
+        "analysis-models": ("12-quick-llm-intent.png", "13-quick-llm-portrait.png"),
         "assistant-1.1.0": (
             "08-assistant-all-summary.png", "09-assistant-time-summary.png",
             "10-assistant-custom-reply.png", "11-assistant-small-settings.png"),

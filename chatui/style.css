@@ -539,6 +539,47 @@ body.theme-light .nav-update-notice:hover {
   position: relative;
 }
 
+.analysis-model-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  gap: 7px 10px;
+  padding: 7px 16px;
+  background: var(--bg-chat-header);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.analysis-model-bar select {
+  width: min(240px, 100%);
+  min-width: 0;
+  min-height: 28px;
+  padding: 3px 7px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  background: var(--bg-search);
+  color: var(--text-main);
+  font: inherit;
+}
+.analysis-model-bar button {
+  min-height: 28px;
+  padding: 3px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+.analysis-model-bar select:focus-visible,
+.analysis-model-bar button:focus-visible {
+  outline: 2px solid var(--color-green);
+  outline-offset: 2px;
+}
+.analysis-model-bar :disabled { opacity: .55; cursor: default; }
+#analysisModelStatus { min-width: 0; overflow-wrap: anywhere; }
+
 /* Chat Header */
 .chat-header {
   height: 60px;
@@ -1141,7 +1182,8 @@ body.theme-light .kaomoji-btn {
   display: none;
   width: 100%;
   min-width: 0;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   flex-direction: column;
 }
 .pane-view.active {

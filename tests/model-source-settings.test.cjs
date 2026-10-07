@@ -19,13 +19,17 @@ const settingsCode = section("async function api(", "function status(") +
   "globalThis.ui = { showModelSource, loadModelSource, fetchApiModels, testApiModel, " +
   "activateModelSource, clearStoredApiKey, invalidateModelDiscovery, invalidateModelTest, " +
   "syncRuntimeControl, syncSavedApiKeyHint, getSnapshot: () => settingsState.modelSourceSnapshot, " +
+  "chooseAnalysisModel, renderAnalysisModelControls, " +
   "markDirty: () => { settingsState.modelSourceDraftDirty = true; } };";
 
 function makeNode() {
+  const classes = new Set();
   return {
     value: "", textContent: "", hidden: false, disabled: false, options: [], dataset: {},
     replaceChildren(...children) { this.options = children; },
     appendChild(child) { this.options.push(child); },
+    click() {}, focus() {}, scrollIntoView() {},
+    classList: { contains: name => classes.has(name), add: name => classes.add(name) },
   };
 }
 function harness(fetchImpl) {
@@ -40,6 +44,7 @@ function harness(fetchImpl) {
     else cardClasses.delete(name);
   } } };
   byId("settingsModal").querySelector = () => card;
+  byId("btnSettings").click = () => byId("settingsModal").classList.add("show");
   const context = vm.createContext({
     URL,
     AbortController,
@@ -266,4 +271,98 @@ it("clears the saved key and refreshes the active source from the server", async
   assert.equal(byId("apiKeySaved").hidden, true);
   assert.equal(byId("inputApiKey").value, "");
   assert.equal(ui.getSnapshot().mode, "local");
+});
+
+it("quickly enables the saved LLM for both analysis paths without saving unfinished API fields", async () => {
+  const calls = [];
+  const { ui, byId } = harness(async (url, options) => {
+    calls.push({url, body:JSON.parse(options.body)});
+    return response(apiState);
+  });
+  ui.showModelSource({...localState, api:apiState.api});
+  byId('inputApiBaseUrl').value='https://unfinished.test/v1';
+  byId('inputApiKey').value='UNSAVED_SYNTHETIC_KEY';
+  ui.markDirty();
+  await ui.chooseAnalysisModel('api');
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].url,'/api/model-source/activate');
+  assert.deepEqual(calls[0].body,{mode:'api',protocol:'responses',baseUrl:'https://example.test/v1',model:'model-b',contextTokens:128000});
+  assert.equal(byId('inputApiBaseUrl').value,'https://unfinished.test/v1');
+  assert.equal(byId('inputApiKey').value,'UNSAVED_SYNTHETIC_KEY');
+  assert.equal(byId('selectAnalysisModel').value,'api');
+  assert.equal(byId('selectAnalysisModel').title,'model-b');
+  assert.match(byId('analysisModelStatus').textContent,/已启用 model-b/);
+});
+
+it("quick source failure keeps the confirmed model and safely reports the error", async () => {
+  const {ui,byId}=harness(async()=>({ok:false,status:401,json:async()=>({code:'auth',error:'UNTRUSTED_SECRET_CONTENT'})}));
+  ui.showModelSource({...localState,api:apiState.api});
+  await ui.chooseAnalysisModel('api');
+  assert.equal(ui.getSnapshot().mode,'local');
+  assert.equal(byId('selectAnalysisModel').value,'local');
+  assert.match(byId('analysisModelStatus').textContent,/启用失败/);
+  assert.doesNotMatch(byId('analysisModelStatus').textContent,/UNTRUSTED_SECRET_CONTENT/);
+  assert.equal(byId('selectAnalysisModel').disabled,false);
+});
+
+it("quick return to local submits only the mode and retains the saved API profile", async () => {
+  let body;
+  const {ui,byId}=harness(async(_url,options)=>{body=JSON.parse(options.body);return response({...localState,api:apiState.api});});
+  ui.showModelSource(apiState);
+  await ui.chooseAnalysisModel('local');
+  assert.deepEqual(body,{mode:'local'});
+  assert.equal(byId('selectAnalysisModel').value,'local');
+  assert.equal(ui.getSnapshot().api.model,'model-b');
+});
+
+it("unconfigured quick LLM selection opens its settings without starting an analysis request", async () => {
+  let calls=0;
+  const {ui,byId}=harness(async()=>{calls++;throw new Error('not expected');});
+  ui.showModelSource(localState);
+  await ui.chooseAnalysisModel('api');
+  assert.equal(calls,0);
+  assert.equal(byId('settingsModal').classList.contains('show'),true);
+  assert.equal(byId('selectModelSource').value,'api');
+  assert.equal(byId('apiModelSettings').hidden,false);
+  assert.equal(byId('selectAnalysisModel').value,'local');
+});
+
+it("quick LLM selection uses the chosen model budget and remembers confirmed models for switching back", async () => {
+  const calls=[];
+  const {ui,byId}=harness(async(url,options)=>{
+    const body=JSON.parse(options.body);calls.push({url,body});
+    if(url.endsWith('/list'))return response({supported:true,models:[{id:'model-c',name:'Model C',contextTokens:262144}]});
+    return response({...apiState,sourceId:'api-c',api:{...apiState.api,model:'model-c',contextTokens:262144}});
+  });
+  ui.showModelSource({...localState,api:apiState.api});
+  byId('inputApiContextTokens').value='128000';
+  await ui.fetchApiModels();
+  assert.ok(byId('selectAnalysisModel').options.some(o=>o.value===JSON.stringify(['api','model-c'])));
+  await ui.chooseAnalysisModel(JSON.stringify(['api','model-c']));
+  assert.equal(calls[1].body.model,'model-c');
+  assert.equal(calls[1].body.contextTokens,262144);
+  assert.ok(byId('selectAnalysisModel').options.some(o=>o.value===JSON.stringify(['api','model-b'])));
+  assert.equal(byId('selectAnalysisModel').title,'model-c');
+});
+
+it("a discovered model without a known context asks for its budget instead of reusing another model capacity", async () => {
+  const calls=[];
+  const {ui,byId}=harness(async(url)=>{calls.push(url);return response({supported:true,models:[{id:'unknown-budget'}]});});
+  ui.showModelSource({...localState,api:apiState.api});
+  byId('inputApiContextTokens').value='128000';
+  await ui.fetchApiModels();
+  await ui.chooseAnalysisModel(JSON.stringify(['api','unknown-budget']));
+  assert.deepEqual(calls,['/api/model-source/list']);
+  assert.equal(byId('inputApiModelId').value,'unknown-budget');
+  assert.equal(byId('inputApiContextTokens').value,'');
+  assert.equal(ui.getSnapshot().mode,'local');
+});
+
+it("model lists from an unfinished different endpoint never enter the active quick selector", async () => {
+  const {ui,byId}=harness(async()=>response({supported:true,models:[{id:'other-host-model',contextTokens:65536}]}));
+  ui.showModelSource({...localState,api:apiState.api});
+  byId('inputApiBaseUrl').value='https://other.test/v1';
+  byId('inputApiContextTokens').value='128000';
+  await ui.fetchApiModels();
+  assert.ok(!byId('selectAnalysisModel').options.some(o=>o.value.includes('other-host-model')));
 });

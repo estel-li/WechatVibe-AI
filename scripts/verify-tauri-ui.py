@@ -129,6 +129,8 @@ def main():
     parser.add_argument("--output", type=Path, default=ROOT / "docs/verification")
     parser.add_argument("--capture-readme", action="store_true",
                         help="Capture the real app UI with synthetic-only documentation fixtures")
+    parser.add_argument("--analysis-models", action="store_true",
+                        help="Verify quick model selection through the isolated real analysis fixture")
     parser.add_argument("--native-dialogs", action="store_true")
     parser.add_argument("--crash-worker", action="store_true", help="Verify native fallback shutdown after an isolated Node worker crash")
     parser.add_argument("--keep-open", action="store_true", help="Keep isolated app open for native Computer Use verification")
@@ -180,10 +182,15 @@ def main():
                    "WECHATVIBE_SMOKE_KEEP_OPEN": "1" if args.keep_open else "0",
                    "WECHATVIBE_README_SCREENSHOTS": "1" if args.capture_readme else "0"}
     if args.capture_readme:
-        if args.crash_worker or args.native_dialogs or args.keep_open:
+        if args.crash_worker or args.native_dialogs or args.keep_open or args.analysis_models:
             parser.error("README capture cannot use crash, native-dialog or keep-open modes")
         environment.pop("WECHATVIBE_SMOKE_ASSISTANT_URL", None)
         environment.pop("WECHATVIBE_SMOKE_AI_FIXTURE", None)
+    if not args.analysis_models:
+        environment.pop("WECHATVIBE_SMOKE_ANALYSIS_URL", None)
+        environment.pop("WECHATVIBE_SMOKE_ANALYSIS_FIXTURE", None)
+    elif not environment.get("WECHATVIBE_SMOKE_ANALYSIS_URL") or not environment.get("WECHATVIBE_SMOKE_ANALYSIS_FIXTURE"):
+        parser.error("Analysis model verification requires its synthetic fixture")
     if args.playwright_root:
         environment["NODE_PATH"] = str(args.playwright_root.resolve())
     for name in ["WECHATVIBE_UPDATE_VALIDATE", "WECHATVIBE_UPDATE_READY_FILE", "WECHATVIBE_UPDATE_READY_NONCE",

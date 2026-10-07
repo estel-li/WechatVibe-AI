@@ -3659,6 +3659,109 @@ settingsState.modelSourceBusy = false;
 settingsState.modelListBusy = false;
 settingsState.modelTestBusy = false;
 settingsState.modelSourceDraftDirty = false;
+// Public model IDs and confirmed budgets only; credentials stay in the backend.
+settingsState.analysisModelCatalogs = new Map();
+settingsState.analysisModelMessage = "";
+function analysisConnectionKey(profile) {
+  return JSON.stringify([profile.protocol, profile.baseUrl.replace(/\/+$/, "")]);
+}
+function validAnalysisContext(value) {
+  return Number.isSafeInteger(value) && value >= 4096 && value <= 1000000;
+}
+function rememberAnalysisModel(profile) {
+  if (!profile?.model) return;
+  const key = analysisConnectionKey(profile);
+  const catalog = settingsState.analysisModelCatalogs.get(key) || new Map();
+  const previous = catalog.get(profile.model);
+  catalog.set(profile.model, { id: profile.model, name: previous?.name || profile.model,
+    contextTokens: profile.contextTokens, saved: true });
+  settingsState.analysisModelCatalogs.set(key, catalog);
+}
+function renderAnalysisModelControls() {
+  const select = byId("selectAnalysisModel");
+  const snapshot = settingsState.modelSourceSnapshot;
+  const profile = snapshot.api;
+  const options = [];
+  const add = (value, label) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    options.push(option);
+  };
+  add("local", "本地 Laya");
+  add("api", profile?.model ? `大模型 · ${profile.model}` : "大语言模型（未配置）");
+  if (profile) {
+    const catalog = settingsState.analysisModelCatalogs.get(analysisConnectionKey(profile));
+    for (const item of catalog?.values() || []) {
+      if (item.id !== profile.model) add(JSON.stringify(["api", item.id]), `大模型 · ${item.name}`);
+    }
+  }
+  add("configure", "配置大语言模型…");
+  select.replaceChildren(...options);
+  select.value = snapshot.mode;
+  select.title = profile && snapshot.mode === "api" ? profile.model : "本地 Laya";
+  select.disabled = !settingsState.modelSourceResolved || settingsState.modelSourceLoading ||
+    settingsState.modelSourceBusy || settingsState.modelTestBusy;
+  byId("btnAnalysisModelSettings").disabled = settingsState.modelSourceBusy;
+  text("analysisModelStatus", settingsState.modelSourceBusy ? "正在切换分析模型…" :
+    settingsState.modelSourceLoading || !settingsState.modelSourceResolved ? "正在确认模型来源…" :
+    settingsState.analysisModelMessage || "用于意图识别与人物画像");
+}
+function openAnalysisModelSettings(model = null) {
+  if (!byId("settingsModal").classList.contains("show")) byId("btnSettings").click();
+  byId("tabGeneral").click();
+  byId("selectModelSource").value = "api";
+  if (model) {
+    const saved = settingsState.modelSourceSnapshot.api;
+    if (saved) {
+      byId("selectApiProtocol").value = saved.protocol;
+      byId("inputApiBaseUrl").value = saved.baseUrl;
+      byId("inputApiKey").value = "";
+    }
+    invalidateModelDiscovery();
+    byId("inputApiModelId").value = model.id;
+    byId("inputApiContextTokens").value = validAnalysisContext(model.contextTokens) ? model.contextTokens : "";
+    syncSavedApiKeyHint();
+  }
+  settingsState.modelSourceDraftDirty = true;
+  showModelSourceMode();
+  text("modelSourceStatus", model ? "请确认模型上下文大小后保存并启用" : "配置大语言模型，用于意图识别与人物画像");
+  byId("apiModelSettings").scrollIntoView({ block: "nearest" });
+  byId(model ? "inputApiContextTokens" : "inputApiBaseUrl").focus();
+}
+async function chooseAnalysisModel(value) {
+  if (!settingsState.modelSourceResolved || settingsState.modelSourceBusy || settingsState.modelSourceLoading ||
+      settingsState.modelTestBusy) return;
+  const snapshot = settingsState.modelSourceSnapshot;
+  const profile = snapshot.api;
+  settingsState.analysisModelMessage = "";
+  if (value === "configure") { renderAnalysisModelControls(); openAnalysisModelSettings(); return; }
+  if (value === "local") {
+    if (snapshot.mode !== "local") await activateModelSource("local", { preserveDraft: true });
+    else renderAnalysisModelControls();
+    return;
+  }
+  let model = profile?.model;
+  if (value !== "api") {
+    let parsed;
+    try { parsed = JSON.parse(value); } catch { renderAnalysisModelControls(); return; }
+    if (!Array.isArray(parsed) || parsed.length !== 2 || parsed[0] !== "api" || typeof parsed[1] !== "string") {
+      renderAnalysisModelControls(); return;
+    }
+    model = parsed[1];
+  }
+  const selected = profile && settingsState.analysisModelCatalogs.get(analysisConnectionKey(profile))?.get(model);
+  if (!profile || !selected || !validAnalysisContext(selected.contextTokens)) {
+    renderAnalysisModelControls();
+    openAnalysisModelSettings(selected || null);
+    return;
+  }
+  if (snapshot.mode === "api" && profile.model === model) { renderAnalysisModelControls(); return; }
+  // Use the saved connection; never implicitly submit fields from an unfinished settings form.
+  await activateModelSource("api", { preserveDraft: true, savedApi: {
+    protocol: profile.protocol, baseUrl: profile.baseUrl, model, contextTokens: selected.contextTokens,
+  } });
+}
 function validModelSource(data) {
   return !!data && ["local", "api"].includes(data.mode) &&
     typeof data.sourceId === "string" && !!data.sourceId &&
@@ -3692,6 +3795,7 @@ function applyActiveModelSource(data) {
     settingsState.modelSourceSnapshot.api?.contextTokens !== data.api?.contextTokens;
   settingsState.modelSourceSnapshot = data;
   settingsState.modelSourceResolved = true;
+  rememberAnalysisModel(data.api);
   syncPortraitMode();
   if (changed) {
     cancelApiPortraitPoll();
@@ -3758,6 +3862,7 @@ function updateModelSourceControls() {
   byId("btnActivateApi").disabled = !settingsState.modelSourceResolved || settingsState.modelSourceLoading || settingsState.modelSourceBusy || settingsState.modelTestBusy;
   byId("btnClearApiKey").disabled = !settingsState.modelSourceResolved || settingsState.modelSourceLoading || settingsState.modelSourceBusy;
   syncRuntimeControl();
+  renderAnalysisModelControls();
 }
 function showModelSourceMode() {
   const isApi = byId("selectModelSource").value === "api";
@@ -3928,6 +4033,15 @@ async function fetchApiModels() {
           item.contextTokens <= 1000000) option.dataset.contextTokens = String(item.contextTokens);
       select.appendChild(option);
     }
+    const connection = analysisConnectionKey(draft);
+    const catalog = settingsState.analysisModelCatalogs.get(connection) || new Map();
+    for (const option of Array.from(select.options).slice(1)) {
+      const previous = catalog.get(option.value);
+      catalog.set(option.value, { id: option.value, name: option.textContent,
+        contextTokens: previous?.saved ? previous.contextTokens : Number(option.dataset.contextTokens) || null,
+        saved: !!previous?.saved });
+    }
+    settingsState.analysisModelCatalogs.set(connection, catalog);
     const model = byId("inputApiModelId").value.trim();
     select.value = known.has(model) ? model : "";
     const selected = Array.from(select.options).find(option => option.value === model);
@@ -3980,11 +4094,11 @@ async function testApiModel() {
     }
   }
 }
-async function activateModelSource(mode) {
+async function activateModelSource(mode, options = {}) {
   if (settingsState.modelSourceBusy || settingsState.modelTestBusy || !["local", "api"].includes(mode)) return;
   let payload = { mode };
   if (mode === "api") {
-    try { payload = { ...payload, ...apiModelDraft(true, true) }; }
+    try { payload = { ...payload, ...(options.savedApi || apiModelDraft(true, true)) }; }
     catch (error) { text("modelSourceStatus", error.message); return; }
   }
   settingsState.modelSourceBusy = true;
@@ -3996,7 +4110,13 @@ async function activateModelSource(mode) {
     const data = await api("/api/model-source/activate", { method: "POST", body: JSON.stringify(payload) },
       abortController.signal);
     if (!validModelSource(data) || data.mode !== mode) throw new Error("activation failed");
-    showModelSource(data);
+    if (options.preserveDraft && settingsState.modelSourceDraftDirty) {
+      applyActiveModelSource(data);
+      text("modelSourceActive", data.mode === "api" ? "当前 API" : "当前本地");
+      syncSavedApiKeyHint();
+      showModelSourceMode();
+    } else showModelSource(data);
+    settingsState.analysisModelMessage = mode === "api" ? `已启用 ${data.api.model}` : "已启用本地 Laya";
     text("modelSourceStatus", mode === "api" ? "API 模型已启用" : "本地模型已启用");
   } catch (error) {
     if (!Number.isInteger(error?.status)) {
@@ -4004,9 +4124,11 @@ async function activateModelSource(mode) {
       settingsState.modelSourceDraftDirty = true;
       void loadModelSource(true);
     }
-    text("modelSourceStatus", settingsState.modelSourceResolved ?
+    const failure = settingsState.modelSourceResolved ?
       `启用失败（${abortController.signal.aborted ? "连接超时" : modelSourceRequestError(error)}），当前仍为${settingsState.modelSourceSnapshot.mode === "api" ? " API" : "本地"}` :
-      "启用状态待读取");
+      "启用状态待读取";
+    text("modelSourceStatus", failure);
+    settingsState.analysisModelMessage = failure;
   } finally {
     clearTimeout(timeoutId);
     settingsState.modelSourceBusy = false;
@@ -4729,6 +4851,7 @@ function closeSettingsModal() {
   pendingDeleteAccountId = null;
   byId("accountDeleteConfirm").hidden = true;
   renderManagedAccounts();
+  updateModelSourceControls();
 }
 async function deleteManagedAccount() {
   const account = managedAccounts.find(item => item.accountId === pendingDeleteAccountId);
@@ -4970,6 +5093,8 @@ byId("btnReloadModelSource").addEventListener("click", () => { void loadModelSou
 byId("btnTestApiModel").addEventListener("click", () => { void testApiModel(); });
 byId("btnActivateLocal").addEventListener("click", () => { void activateModelSource("local"); });
 byId("btnActivateApi").addEventListener("click", () => { void activateModelSource("api"); });
+byId("selectAnalysisModel").addEventListener("change", event => { void chooseAnalysisModel(event.target.value); });
+byId("btnAnalysisModelSettings").addEventListener("click", () => { openAnalysisModelSettings(); });
 byId("btnClearApiKey").addEventListener("click", () => { void clearStoredApiKey(); });
 const OFFICIAL_RELEASES_URL = "https://github.com/estel-li/WechatVibe-tauri2/releases";
 const UPDATE_BUSY_PHASES = new Set(["downloading", "verifying", "extracting", "installing", "restarting"]);
@@ -5215,7 +5340,7 @@ renderUpdateState();
 byId("btnSettings").addEventListener("click", () => {
   byId("settingsModal").classList.add("show");
   void loadRuntime();
-  void loadModelSource();
+  if (!settingsState.modelSourceBusy) void loadModelSource(true);
   void loadLocalModel();
   void loadDataRoot();
   if (typeof window.desktopHost?.getModelDownloadState === "function")

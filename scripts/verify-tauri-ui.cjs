@@ -199,6 +199,61 @@ let connectedBrowser;
   await page.waitForFunction(() => !document.hidden);
   passed("Custom minimize and second-instance restore/focus operate native window");
   await screenshot("05-chat-restored-dark");
+  if (fixture.analysisModels) {
+    assert.equal(fixture.remoteCalls, 0);
+    await page.setViewportSize({width:1280,height:960});
+    await page.locator("#btnSettings").click();
+    await page.locator("#tabGeneral").click();
+    await page.locator("#selectZoomLevel").selectOption("1.0");
+    await page.locator("#btnCloseSettings").click();
+    await page.locator("#chatInput").fill("好呀，那周六见！");
+    const statsUrl = new URL(fixture.analysisStatsUrl);
+    assert.equal(statsUrl.protocol, "http:"); assert.equal(statsUrl.hostname, "127.0.0.1");
+    const analysisStats = async () => (await fetch(statsUrl)).json();
+    await page.locator('#sessionList .session-item[data-id="synthetic-a"]').click();
+    await page.waitForFunction(() => chatState.currentUser === "synthetic-a" && !document.getElementById("selectAnalysisModel").disabled);
+    assert.equal(await page.locator("#selectAnalysisModel").inputValue(), "local");
+    await page.locator("#selectAnalysisModel").selectOption("api");
+    await page.waitForFunction(() => settingsState.modelSourceSnapshot.mode === "api" && document.querySelectorAll("#chatMessages .inline-intent-row").length > 0);
+    assert.match(await page.locator("#chatMessages").innerText(), /邀约/);
+    assert.match(await page.locator("#analysisModelStatus").textContent(), /synthetic-model/);
+    await screenshot("12-quick-llm-intent");
+    passed("Chat quick selection activates the saved LLM and displays real HTTP/Python/Node/SDK intent results");
+    await page.locator("#navPersona").click();
+    await page.waitForFunction(() => document.getElementById("apiPortraitStatus").textContent === "API 画像已更新", null, {timeout:30000});
+    assert.match(await page.locator("#portraitSourceBadge").textContent(), /synthetic-model/);
+    assert.match(await page.locator("#botSummaryText").textContent(), /已分析1条/);
+    await screenshot("13-quick-llm-portrait");
+    const initial = await analysisStats();
+    assert.ok(initial.insightRequests >= 1 && initial.portraitRequests >= 1); assert.equal(initial.remoteCalls,0);
+    passed("The selected LLM also generates the real native portrait with shared scoring and actual message evidence");
+    await page.locator("#selectAnalysisModel").selectOption("local");
+    await page.waitForFunction(() => settingsState.modelSourceSnapshot.mode === "local" && !document.getElementById("selectAnalysisModel").disabled);
+    assert.equal(await page.locator("#portraitSourceBadge").textContent(), "本地 Laya");
+    assert.equal(await page.locator("#apiPortraitStatus").isHidden(), true);
+    await page.locator("#selectAnalysisModel").selectOption("api");
+    await page.waitForFunction(() => settingsState.modelSourceSnapshot.mode === "api" && document.getElementById("apiPortraitStatus").textContent === "API 画像已更新");
+    const restored = await analysisStats();
+    assert.equal(restored.insightRequests, initial.insightRequests);
+    assert.equal(restored.portraitRequests, initial.portraitRequests);
+    record.analysisModels = {synthetic:true, remoteCalls:0, insightRequests:initial.insightRequests,
+      portraitRequests:initial.portraitRequests, sourceScopedCacheRestored:true};
+    passed("Local/LLM round trips synchronize both views and restore cached analysis without new model requests");
+    await page.locator("#btnAnalysisModelSettings").click();
+    await page.waitForFunction(() => document.getElementById("settingsModal").classList.contains("show"));
+    assert.equal(await page.locator("#selectModelSource").inputValue(), "api");
+    assert.equal(await page.locator("#apiModelSettings").isVisible(), true);
+    await page.locator("#btnCloseSettings").click();
+    await page.setViewportSize({width:720,height:520});
+    const layout = await page.locator(".analysis-model-bar").evaluate(node => ({
+      right:node.getBoundingClientRect().right, width:innerWidth,
+      overflow:document.documentElement.scrollWidth > innerWidth,
+      paneBottom:document.querySelector("#personaView").getBoundingClientRect().bottom,height:innerHeight,
+    }));
+    assert.ok(layout.right<=layout.width+1 && layout.paneBottom<=layout.height+1); assert.equal(layout.overflow,false);
+    passed("Analysis configuration opens from either view and the shared selector fits a small native window");
+    await page.setViewportSize({width:1280,height:960});
+  }
   if (process.env.WECHATVIBE_SMOKE_AI_FIXTURE) {
     const fixtureInfo = JSON.parse(process.env.WECHATVIBE_SMOKE_AI_FIXTURE);
     assert.equal(fixtureInfo.status, "READY");

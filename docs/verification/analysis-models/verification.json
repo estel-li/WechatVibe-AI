@@ -1,0 +1,76 @@
+{
+  "synthetic": true,
+  "executableSha256": "3f803cfc07758e7901bcf840ae0c0777e1844dfd3d5566685e5286d172ff410e",
+  "checks": [
+    "Renderer has no Node require and native shell blocks external navigation/popups",
+    "Native desktop bridge, bilingual Zhiyi / WechatVibe AI branding and original 36px titlebar",
+    "Conversation selection, sidebar switching, chat and persona navigation",
+    "Rolling message windows retain 79 of 80 DOM rows; corrected text replaces only its row",
+    "Trusted UI gesture copies synthetic draft through native clipboard",
+    "Settings trap focus, restore the opener, support Escape and keyboard tabs, and display the owner's About page",
+    "Light/dark theme and zoom preserve titlebar geometry",
+    "Native app version and existing software-update UI",
+    "Custom maximize and restore controls operate native window",
+    "Custom minimize and second-instance restore/focus operate native window",
+    "Chat quick selection activates the saved LLM and displays real HTTP/Python/Node/SDK intent results",
+    "The selected LLM also generates the real native portrait with shared scoring and actual message evidence",
+    "Local/LLM round trips synchronize both views and restore cached analysis without new model requests",
+    "Analysis configuration opens from either view and the shared selector fits a small native window"
+  ],
+  "brand": {
+    "nameZh": "知意 AI",
+    "nameEn": "WechatVibe AI",
+    "title": "知意 AI · WechatVibe AI"
+  },
+  "rendererPerformance": {
+    "total": 80,
+    "retained": 79,
+    "rollingCreated": 1,
+    "correctedCreated": 1,
+    "durationMs": 1.2000000029802322
+  },
+  "smallViewport": {
+    "x": 24,
+    "y": 60,
+    "right": 696,
+    "bottom": 496,
+    "width": 720,
+    "height": 520
+  },
+  "smallUpdateViewport": {
+    "x": 30,
+    "y": 55.5,
+    "right": 690,
+    "bottom": 464.5,
+    "width": 720,
+    "height": 520
+  },
+  "analysisModels": {
+    "synthetic": true,
+    "remoteCalls": 0,
+    "insightRequests": 1,
+    "portraitRequests": 1,
+    "sourceScopedCacheRestored": true
+  },
+  "analysisRequests": 0,
+  "metrics": {
+    "frozen": true,
+    "platform": "win32",
+    "titlebarHeight": 36,
+    "methods": true,
+    "version": "v1.2.0"
+  },
+  "consoleErrors": [],
+  "nativeExitCode": 0,
+  "sourceUiSha256": {
+    "app.js": "419e1aba33450c7e61951729728227d228ff558010d0039db478d82e605ece3a",
+    "index.html": "6fe64ee061f7591b46a6d8ab6aeabc17b8e7dd7705787ff7b0fcace3b13e1a4a",
+    "style.css": "79f4896bcf656494a99c4ab9f67ae8f4bb18b7030fea710018df5bd58b434da7"
+  },
+  "tests": {
+    "node": 494,
+    "pythonRelated": 98,
+    "typecheck": "passed"
+  },
+  "note": "Packaged Tauri 1.2.0 development UI and runtime; actual backend and SDK with fictional messages and a loopback synthetic model. No remote model or WeChat account."
+}

@@ -54,7 +54,10 @@ if _model_manifest.get("schema") != 1 or set(MODEL_FILES) != set(MODEL_PINS):
 PUBLIC_FILES = (
     "LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "MIGRATION.md",
     "docs/startup-diagnostics.md", "docs/review-and-performance.md",
-    "docs/ai-assistant.md", "docs/verification/assistant-1.1.0/verification.json",
+    "docs/ai-assistant.md", "docs/analysis-models.md", "docs/verification/assistant-1.1.0/verification.json",
+    "docs/verification/analysis-models/verification.json",
+    "docs/verification/analysis-models/12-quick-llm-intent.png",
+    "docs/verification/analysis-models/13-quick-llm-portrait.png",
     "docs/verification/assistant-1.1.0/08-assistant-all-summary.png",
     "docs/verification/assistant-1.1.0/09-assistant-time-summary.png",
     "docs/verification/assistant-1.1.0/10-assistant-custom-reply.png",

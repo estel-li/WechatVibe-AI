@@ -114,6 +114,15 @@
 
   <!-- ================= COLUMN 3: RIGHT MAIN CHAT PANE ================= -->
   <main class="chat-pane">
+    <div class="analysis-model-bar" aria-label="意图与画像分析模型">
+      <label for="selectAnalysisModel">分析模型</label>
+      <select id="selectAnalysisModel" aria-describedby="analysisModelStatus" disabled>
+        <option value="local">本地 Laya</option>
+        <option value="api">大语言模型（未配置）</option>
+      </select>
+      <button type="button" id="btnAnalysisModelSettings">大模型设置</button>
+      <span id="analysisModelStatus" role="status">正在读取模型来源…</span>
+    </div>
     <!-- VIEW 1: CHAT VIEW -->
     <div class="pane-view active" id="chatView">
       <!-- Chat Header Bar -->

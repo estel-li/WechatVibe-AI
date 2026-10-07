@@ -10,11 +10,14 @@ const appVersion = process.env.WECHATVIBE_APP_VERSION;
 const account = "synthetic-ui-verification";
 const readmeDemo = process.env.WECHATVIBE_README_SCREENSHOTS === "1";
 const demo = readmeDemo ? createReadmeDemo() : null;
+const analysisFixture = process.env.WECHATVIBE_SMOKE_ANALYSIS_FIXTURE ?
+  JSON.parse(process.env.WECHATVIBE_SMOKE_ANALYSIS_FIXTURE) : null;
 const sessions = demo?.sessions || [
   { username: "synthetic-a", name: "测试会话 A", preview: "合成消息，仅用于架构验证", unreadCount: 0, isGroup: false },
   { username: "synthetic-b", name: "测试会话 B", preview: "没有读取微信聊天记录", unreadCount: 0, isGroup: false },
 ];
-const messages = user => demo ? demo.messages(user) : [{ id: user + "-1", side: "other", kind: "text", text: "合成消息，仅用于架构验证", sender: "测试对象", time: 1_760_000_000_000 }];
+const messages = user => demo ? demo.messages(user) : analysisFixture ? analysisFixture.messages :
+  [{ id: user + "-1", side: "other", kind: "text", text: "合成消息，仅用于架构验证", sender: "测试对象", time: 1_760_000_000_000 }];
 let selectedSessions = demo ? ["synthetic-a", "synthetic-b", "synthetic-group@chatroom", "synthetic-family@chatroom"] : [], analysisRequests = 0;
 const send = (response, data, status = 200) => {
   response.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
@@ -23,6 +26,7 @@ const send = (response, data, status = 200) => {
 const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, "http://127.0.0.1");
   if (url.pathname === "/__smoke__") return send(response, { synthetic: true, analysisRequests,
+    ...(analysisFixture ? { analysisModels: true, remoteCalls: 0, analysisStatsUrl: analysisFixture.statsUrl } : {}),
     ...(demo ? { readmeDemo: true, remoteCalls: 0, personUser: "synthetic-a", groupUser: "synthetic-group@chatroom",
       storyFromMs: Date.parse("2026-10-07T09:00:00+08:00"), storyToMs: Date.parse("2026-10-07T10:00:00+08:00"),
       expectedSessionCount: sessions.length, historyCount: demo.history("synthetic-a").length } : {}) });
@@ -40,6 +44,18 @@ const server = http.createServer(async (request, response) => {
       catch { return send(response, { error: "invalid-synthetic-request" }, 400); }
       const result = demo.handle(url, request.method, body);
       return send(response, result.data, result.status || 200);
+    }
+    if (analysisFixture && ["/api/model-source", "/api/model-source/activate", "/api/model-source/list",
+      "/api/model-source/test", "/api/model-source/clear-key", "/api/model-insights", "/api/model-portrait"].includes(url.pathname)) {
+      const target = new URL(process.env.WECHATVIBE_SMOKE_ANALYSIS_URL);
+      if (target.protocol !== "http:" || target.hostname !== "127.0.0.1" || target.username || target.password)
+        return send(response, { error: "invalid-synthetic-analysis" }, 503);
+      target.pathname = url.pathname; target.search = url.search;
+      try {
+        const actual = await fetch(target, { method: request.method, headers: { "Content-Type": "application/json" },
+          ...(request.method === "POST" ? { body: data } : {}) });
+        return send(response, await actual.json(), actual.status);
+      } catch { return send(response, { error: "synthetic-analysis-unavailable" }, 503); }
     }
     if (url.pathname.startsWith("/api/assistant/") && process.env.WECHATVIBE_SMOKE_ASSISTANT_URL) {
       const target = new URL(process.env.WECHATVIBE_SMOKE_ASSISTANT_URL);
