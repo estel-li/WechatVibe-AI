@@ -89,7 +89,7 @@ function fakeFetch(data, changeResponse) {
 }
 
 async function main() {
-  const temp = fs.mkdtempSync(path.join(os.tmpdir(), "wechatvibe-update-test-"));
+  const temp = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), "wechatvibe-update-test-")));
   try {
     // Loading an isolated copy exercises the real discovery path with a synthetic key.
     const moduleDir = path.join(temp, "module");

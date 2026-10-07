@@ -24,7 +24,7 @@ class ModelPreserveTests(unittest.TestCase):
         if not node:
             self.skipTest("Node.js is unavailable")
         with tempfile.TemporaryDirectory(prefix="wechatvibe-model-preserve-") as temporary:
-            root = Path(temporary)
+            root = Path(temporary).resolve()
             old = root / "old"
             candidate = root / "candidate"
             old_model = old / "client/.models/laya"

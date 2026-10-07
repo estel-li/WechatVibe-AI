@@ -16,10 +16,11 @@ concurrency:
 jobs:
   windows:
     runs-on: windows-2025
-    timeout-minutes: 35
+    timeout-minutes: 45
     env:
       PYTHONUTF8: '1'
       PYTHONDONTWRITEBYTECODE: '1'
+      RUSTUP_TOOLCHAIN: '1.98.0'
       # Unit checks run from source; distributable sidecars are prepared by the
       # release builder and are intentionally absent from a clean checkout.
       TAURI_CONFIG: '{"bundle":{"resources":[]}}'
@@ -34,17 +35,32 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.14'
-          cache: pip
-          cache-dependency-path: python-requirements.lock.txt
-      - name: Install locked dependencies
+      - name: Find Python wheel cache
+        id: pip-cache
         run: |
-          npm ci
+          $taskPipCachePath = (python -m pip cache dir).Trim()
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m pip install -r python-requirements.lock.txt
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          rustup update stable --no-self-update
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          rustup component add clippy --toolchain stable
+          "path=$taskPipCachePath" >> $env:GITHUB_OUTPUT
+      - name: Restore compiled Python wheels
+        id: python-wheels
+        uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        with:
+          path: ${{ steps.pip-cache.outputs.path }}
+          key: ${{ runner.os }}-${{ runner.arch }}-pip-3.14-${{ hashFiles('python-requirements.lock.txt') }}
+      - name: Install locked Node dependencies
+        run: npm ci
+      - name: Install locked Python dependencies
+        run: python -m pip install -r python-requirements.lock.txt
+      # winsdk has no CPython 3.14 wheel. Save the compiled wheel immediately so
+      # a later regression failure does not discard the expensive first build.
+      - name: Save compiled Python wheels
+        if: steps.python-wheels.outputs.cache-hit != 'true'
+        uses: actions/cache/save@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        with:
+          path: ${{ steps.pip-cache.outputs.path }}
+          key: ${{ steps.python-wheels.outputs.cache-primary-key }}
+      - name: Prepare tested Rust toolchain
+        run: rustup toolchain install 1.98.0 --profile minimal --component clippy --no-self-update
       - name: Complete regression suite
         run: npm test
       - name: Rust warnings

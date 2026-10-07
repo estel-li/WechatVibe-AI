@@ -40,14 +40,14 @@ class ExtractTests(unittest.TestCase):
 
     def reject(self, extra=(), replace=None):
         with tempfile.TemporaryDirectory(prefix="wechatvibe-extract-test-") as folder:
-            work = Path(folder)
+            work = Path(folder).resolve()
             archive = self.make_archive(work, extra, replace)
             with self.assertRaises(ValueError):
                 extractor.extract(archive, work, "1.0.2")
 
     def test_valid_candidate(self):
         with tempfile.TemporaryDirectory(prefix="wechatvibe-extract-test-") as folder:
-            work = Path(folder)
+            work = Path(folder).resolve()
             archive = self.make_archive(work)
             candidate = extractor.extract(archive, work, "1.0.2")
             self.assertEqual(candidate, work / "tauri2-portable")

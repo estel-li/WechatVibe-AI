@@ -27,8 +27,13 @@ function buildClient(root, version, withLocal = false) {
   put(path.join(root, "client", "scripts", "start-real-client.py"));
   if (withLocal) put(path.join(root, "client", ".local", "account", "saved.db"), "private bytes");
 }
+function temporaryRoot() {
+  // Windows may expose the runner profile through an 8.3 path in TEMP.
+  // The updater intentionally requires canonical paths, even for fixtures.
+  return fs.realpathSync.native(os.tmpdir());
+}
 function fixture() {
-  const parent = fs.mkdtempSync(path.join(os.tmpdir(), "wechatvibe-helper-test-"));
+  const parent = fs.realpathSync.native(fs.mkdtempSync(path.join(temporaryRoot(), "wechatvibe-helper-test-")));
   const installRoot = path.join(parent, "WechatVibe");
   const workDir = path.join(parent, ".wechatvibe-update-fixture");
   const candidatePath = path.join(workDir, "tauri2-portable");
@@ -112,7 +117,7 @@ function ageJournal(workDir, timestamp) {
 }
 function cleanup(parent) {
   const absolute = path.resolve(parent);
-  if (path.dirname(absolute) !== path.resolve(os.tmpdir()) ||
+  if (path.dirname(absolute) !== temporaryRoot() ||
       !path.basename(absolute).startsWith("wechatvibe-helper-test-")) {
     throw new Error("unsafe fixture cleanup path");
   }
@@ -120,7 +125,30 @@ function cleanup(parent) {
 }
 async function main() {
   {
-    const op = { workDir: path.join(os.tmpdir(), ".wechatvibe-update-fixture") };
+    // Exercise short-name semantics on every platform, including Windows
+    // volumes where actual 8.3 name generation has been disabled.
+    const originalTmpdir = os.tmpdir;
+    const originalRealpath = fs.realpathSync.native;
+    const physical = originalRealpath(originalTmpdir());
+    const alias = path.join(path.dirname(physical), "RUNNER~1", "synthetic-temp");
+    let f;
+    try {
+      os.tmpdir = () => alias;
+      fs.realpathSync.native = (file, ...args) => file === alias ? physical : originalRealpath(file, ...args);
+      f = fixture();
+    } finally {
+      os.tmpdir = originalTmpdir;
+      fs.realpathSync.native = originalRealpath;
+    }
+    try {
+      assert.equal(path.dirname(f.parent), physical, "fixtures must expand a short TEMP alias before creating paths");
+      for (const file of [f.parent, f.op.installRoot, f.op.workDir, f.op.candidatePath, f.file]) {
+        assert.equal(file, originalRealpath(file), "updater fixtures must use canonical paths");
+      }
+    } finally { if (f) cleanup(f.parent); }
+  }
+  {
+    const op = { workDir: path.join(temporaryRoot(), ".wechatvibe-update-fixture") };
     const name = "WechatVibeUpdate-.wechatvibe-update-fixture";
     const key = "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce";
     assert.equal(runOnceAbsent(op, () => `${key}\n    ${name}    REG_SZ    recover\n`), false);
@@ -142,7 +170,7 @@ async function main() {
     child.pid = 77776;
     let unrefed = false;
     child.unref = () => { unrefed = true; };
-    const root = path.join(os.tmpdir(), "wechatvibe-visible-launch-fixture");
+    const root = path.join(temporaryRoot(), "wechatvibe-visible-launch-fixture");
     const result = await launchClient(root, (program, args, options) => {
       assert.equal(program, path.join(root, "WechatVibe.exe"));
       assert.deepEqual(args, []);
