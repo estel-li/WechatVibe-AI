@@ -1,0 +1,22 @@
+* text=auto
+# Retain the imported upstream texts and migration scaffold verbatim.
+# Extra empty EOF lines are permitted; code trailing spaces remain checked.
+* whitespace=-blank-at-eof
+licenses/** -whitespace
+bridge/wechat_bridge.py whitespace=-blank-at-eol,-blank-at-eof
+*.rs text eol=lf
+*.toml text eol=lf
+*.js text eol=lf
+*.cjs text eol=lf
+*.mjs text eol=lf
+*.ts text eol=lf
+*.py text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.png binary
+*.jpg binary
+*.ico binary

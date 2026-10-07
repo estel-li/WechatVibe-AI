@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "framework": "tauri2",
+  "version": "1.2.4",
+  "verifiedDate": "2026-10-07",
+  "timezone": "Asia/Hong_Kong",
+  "npmTest": {
+    "passed": true,
+    "typescript": "passed",
+    "nodeTests": 443,
+    "nodeScriptSuites": 8,
+    "pythonTests": 444,
+    "pythonModules": 34,
+    "rustTests": 3
+  },
+  "rustClippyWarnings": "none",
+  "frontendComparison": {
+    "app.jsByteIdenticalToElectron": true,
+    "changes": "desktopHost Tauri adapter and native titlebar controls"
+  },
+  "verificationFiles": [
+    "ui-verification.json",
+    "native-window-verification.json",
+    "tauri-backend-smoke.json"
+  ],
+  "liveAccountAndPaidProviderTests": "not performed",
+  "bundledModelWeights": false
+}

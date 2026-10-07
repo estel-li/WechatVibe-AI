@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-desktop-exit-app"
+description = "Enables the desktop_exit_app command without any pre-configured scope."
+commands.allow = ["desktop_exit_app"]
+
+[[permission]]
+identifier = "deny-desktop-exit-app"
+description = "Denies the desktop_exit_app command without any pre-configured scope."
+commands.deny = ["desktop_exit_app"]

@@ -1,0 +1,24 @@
+{
+  "synthetic": true,
+  "executableSha256": "5da8c6b26ce28b44429f2f21f699f648c60692a5356102af5a8ade15b34b26ff",
+  "checks": [
+    "Renderer has no Node require and native shell blocks external navigation/popups",
+    "Native desktop bridge and original 36px titlebar",
+    "Conversation selection, sidebar switching, chat and persona navigation",
+    "Trusted UI gesture copies synthetic draft through native clipboard",
+    "Light/dark theme and zoom preserve titlebar geometry",
+    "Native app version and existing software-update UI",
+    "Custom maximize and restore controls operate native window",
+    "Custom minimize and second-instance restore/focus operate native window"
+  ],
+  "analysisRequests": 0,
+  "metrics": {
+    "frozen": true,
+    "platform": "win32",
+    "titlebarHeight": 36,
+    "methods": true,
+    "version": "v1.2.4"
+  },
+  "consoleErrors": [],
+  "nativeExitCode": 0
+}

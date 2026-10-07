@@ -1,0 +1,25 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "WechatVibe",
+  "version": "1.2.4",
+  "identifier": "com.local.wechatvibe.tauri2",
+  "build": {
+    "frontendDist": "../chatui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [],
+    "security": { "capabilities": [], "csp": null }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["../chatui/assets/wechatvibe-icon.ico"],
+    "resources": { "resources/client/": "client/", "../scripts/diagnose-startup.bat": "WechatVibe-diagnose.bat" },
+    "windows": {
+      "webviewInstallMode": { "type": "downloadBootstrapper" },
+      "nsis": { "installMode": "currentUser", "languages": ["SimpChinese"], "displayLanguageSelector": false }
+    }
+  }
+}
+

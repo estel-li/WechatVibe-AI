@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "verifiedOn": "2026-10-07",
+  "review": "docs/review-and-performance.md",
+  "owner": "老李",
+  "tests": {
+    "npmTest": "passed",
+    "node": 447,
+    "python": 444,
+    "rust": 4,
+    "nodeScriptSuites": 8,
+    "clippy": "no warnings",
+    "packaging": 11
+  },
+  "nativeUI": {
+    "checksPassed": 11,
+    "nativeExitCode": 0,
+    "consoleErrors": [],
+    "crashCleanupVerified": true,
+    "data": "synthetic only"
+  },
+  "performance": {
+    "synthetic": true,
+    "workload": "2000 conversation/message timestamps; median of three rounds",
+    "runtime": "v24.18.0",
+    "beforeMs": 82.13,
+    "afterMs": 3,
+    "speedup": 27.35,
+    "localeOutputUnchanged": true
+  },
+  "portable": {
+    "path": "dist/WechatVibe-tauri2-reviewed",
+    "sha256": "5d49baa33a302d64bd60abc48199a175aafa43382e3abea72b04c24ababe4a26"
+  },
+  "existingInstallationData": "preserved in original dist/WechatVibe-tauri2; not included in Git or new public packages",
+  "liveAccountAndOnlineProviderVerification": "not performed"
+}

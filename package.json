@@ -1,0 +1,51 @@
+{
+  "name": "wechatvibe-tauri2",
+  "version": "1.2.4",
+  "private": true,
+  "type": "module",
+  "description": "WechatVibe 本机只读微信会话分析桌面客户端",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24.11.1 <25"
+  },
+  "scripts": {
+    "start": "tauri dev",
+    "start:service": "python scripts/run-project-python.py scripts/start-real-client.py --no-open",
+    "setup:models": "tsx scripts/setup-models.ts",
+    "catalog:generate": "node scripts/build-analysis-catalog.mjs",
+    "catalog:export": "python scripts/export-label-library.py --output WechatVibe-label-library.txt",
+    "test": "npm run typecheck && npm run test:node && npm run test:scripts && npm run test:python && npm run test:rust",
+    "test:node": "node --import tsx --test tests/*.test.ts tests/*.test.cjs",
+    "test:python": "python scripts/run-python-tests.py",
+    "test:model": "tsx scripts/test-model.ts",
+    "test:recovery": "node scripts/test-real-client-recovery.cjs && python scripts/run-project-python.py scripts/test-start-real-client.py && python scripts/run-project-python.py bridge/test_account_store.py",
+    "build:portable": "python scripts/run-project-python.py scripts/build-tauri-portable.py",
+    "typecheck": "tsc --noEmit -p tsconfig.analysis.json",
+    "test:scripts": "node scripts/run-node-script-tests.cjs",
+    "tauri": "tauri",
+    "build": "tauri build --no-bundle",
+    "build:installer": "python scripts/run-project-python.py scripts/prepare-tauri-runtime.py && tauri build",
+    "prepare:runtime": "python scripts/run-project-python.py scripts/prepare-tauri-runtime.py",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "test:ui": "python scripts/verify-tauri-ui.py"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.128.0",
+    "@google/genai": "2.24.0",
+    "@huggingface/tokenizers": "0.2.0",
+    "ollama": "0.6.3",
+    "onnxruntime-node": "1.30.0",
+    "openai": "7.23.0",
+    "tsx": "4.23.15",
+    "undici": "7.29.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.1",
+    "@types/node": "26.6.2",
+    "playwright": "1.63.0",
+    "typescript": "7.0.2"
+  },
+  "author": {
+    "name": "老李"
+  }
+}

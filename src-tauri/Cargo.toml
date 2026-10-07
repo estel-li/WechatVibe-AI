@@ -1,0 +1,36 @@
+[package]
+name = "wechatvibe-tauri2"
+version = "1.2.4"
+description = "WechatVibe Tauri 2 desktop host"
+authors = ["老李"]
+edition = "2021"
+rust-version = "1.90"
+license = "Apache-2.0"
+
+[features]
+default = []
+custom-protocol = ["tauri/custom-protocol"]
+
+[[bin]]
+name = "WechatVibe"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "=2.7.1", features = [] }
+
+[dependencies]
+tauri = { version = "=2.12.1", features = [] }
+serde_json = "1"
+sha2 = "0.10"
+arboard = { version = "3", default-features = false }
+rfd = { version = "0.15", default-features = false, features = ["common-controls-v6"] }
+open = "5"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Threading", "Win32_Security"] }
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1
+

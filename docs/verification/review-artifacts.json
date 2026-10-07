@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "verifiedOn": "2026-10-07",
+  "portable": "dist/WechatVibe-tauri2-reviewed",
+  "files": 8058,
+  "clientFiles": 8056,
+  "zipCRC": "passed",
+  "zipFileSha256": "all match portable tree",
+  "containsUserData": false,
+  "installerPayloadVerified": true,
+  "installerFiles": 8056,
+  "installerInstalledForTest": false,
+  "artifacts": [
+    {
+      "file": "dist/reviewed-releases/WechatVibe-tauri2-1.2.4-windows-x64.zip",
+      "bytes": 193225941,
+      "sha256": "bd5ff1af1b411311539d32fd949fb4bff33d6f7f2d5e41ce1629bf63163bbd03"
+    },
+    {
+      "file": "dist/reviewed-releases/WechatVibe-tauri2-1.2.4-windows-x64-setup.exe",
+      "bytes": 130592765,
+      "sha256": "40b4cdbfbb7e3ada443b3c416f8088b0bb1debabaf415f1ffabe539c69a8da7c"
+    }
+  ]
+}

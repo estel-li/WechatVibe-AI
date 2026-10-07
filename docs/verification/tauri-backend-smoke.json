@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "desktopFramework": "tauri2",
+  "applicationVersion": "1.2.4",
+  "verifiedDate": "2026-10-07",
+  "timezone": "Asia/Hong_Kong",
+  "source": {
+    "transport": "real Node worker stdin/stdout JSON lines",
+    "pythonRuntime": "project interpreter",
+    "startCreatedOwnedBridge": true,
+    "healthSchema": "real-ui-1",
+    "healthInstanceMatchesLauncher": true,
+    "initialModelDownloadPhase": "idle",
+    "initialUpdatePhase": "idle",
+    "shutdownStoppedOwnedBridge": true,
+    "bridgePortReleased": true,
+    "workerExitCode": 0
+  },
+  "stagedPortableRuntime": {
+    "transport": "real bundled Node worker stdin/stdout JSON lines",
+    "pythonRuntime": "bundled interpreter",
+    "startCreatedOwnedBridge": true,
+    "healthSchema": "real-ui-1",
+    "healthInstanceMatchesLauncher": true,
+    "initialModelDownloadPhase": "idle",
+    "initialUpdatePhase": "idle",
+    "shutdownStoppedOwnedBridge": true,
+    "bridgePortReleased": true,
+    "workerExitCode": 0
+  },
+  "dataAccess": "Only the local health endpoint was requested; no account configuration or WeChat data API was accessed."
+}

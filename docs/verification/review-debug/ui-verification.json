@@ -1,0 +1,54 @@
+{
+  "synthetic": true,
+  "executableSha256": "85e505345524cd2993696c470d1f23cb87bf37760732720074a8e8667fa51e74",
+  "checks": [
+    "Renderer has no Node require and native shell blocks external navigation/popups",
+    "Native desktop bridge and original 36px titlebar",
+    "Conversation selection, sidebar switching, chat and persona navigation",
+    "Rolling message windows retain 79 of 80 DOM rows; corrected text replaces only its row",
+    "Trusted UI gesture copies synthetic draft through native clipboard",
+    "Settings trap focus, restore the opener, support Escape and keyboard tabs, and display the owner's About page",
+    "Light/dark theme and zoom preserve titlebar geometry",
+    "Native app version and existing software-update UI",
+    "Custom maximize and restore controls operate native window",
+    "Custom minimize and second-instance restore/focus operate native window",
+    "Worker crash is reported and future RPC fails promptly; native close will run ownership-checked cleanup"
+  ],
+  "rendererPerformance": {
+    "total": 80,
+    "retained": 79,
+    "rollingCreated": 1,
+    "correctedCreated": 1,
+    "durationMs": 1.5
+  },
+  "smallViewport": {
+    "x": 24,
+    "y": 60,
+    "right": 696,
+    "bottom": 496,
+    "width": 720,
+    "height": 520
+  },
+  "smallUpdateViewport": {
+    "x": 30,
+    "y": 55.5,
+    "right": 690,
+    "bottom": 464.5,
+    "width": 720,
+    "height": 520
+  },
+  "analysisRequests": 0,
+  "metrics": {
+    "frozen": true,
+    "platform": "win32",
+    "titlebarHeight": 36,
+    "methods": true,
+    "version": "v1.2.4"
+  },
+  "consoleErrors": [],
+  "workerCrash": {
+    "rejected": true,
+    "ms": 2.6999999955296516
+  },
+  "nativeExitCode": 0
+}

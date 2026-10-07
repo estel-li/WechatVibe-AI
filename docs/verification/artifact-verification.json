@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "verifiedOn": "2026-10-07",
+  "desktopFramework": "tauri2",
+  "version": "1.2.4",
+  "layout": "tauri2-portable",
+  "runtime": {
+    "python": "3.14.4",
+    "pythonDistributions": 18,
+    "node": "v24.18.0",
+    "nodePackages": 73,
+    "onnxruntimeNode": "1.30.0",
+    "clientFiles": 8050
+  },
+  "cleanTree": {
+    "portableFiles": 8052,
+    "exactManifestMatch": true,
+    "publicSourcesMatch": true,
+    "userDataPresent": false,
+    "electronRuntimePresent": false
+  },
+  "executables": {
+    "portable": {
+      "bytes": 12909568,
+      "sha256": "5da8c6b26ce28b44429f2f21f699f648c60692a5356102af5a8ade15b34b26ff",
+      "bundleMarker": "UNK"
+    },
+    "installerPayload": {
+      "bytes": 12909568,
+      "sha256": "defb80e8f60bc23578de797594ff0ffdc8756ce1fa469f163f2a0021e4c6d3af",
+      "bundleMarker": "NSS"
+    },
+    "identicalMachineCode": true,
+    "onlyBundleMarkerAndPeDebugMetadataDiffer": true,
+    "differentBytes": 27
+  },
+  "artifacts": {
+    "portableZip": {
+      "file": "dist/releases/WechatVibe-tauri2-1.2.4-windows-x64.zip",
+      "bytes": 193156988,
+      "sha256": "75aa508c844415f0638536acc1912f366af5965922d136686dde711f82a39b4c",
+      "crcVerified": true,
+      "everyFileSha256Verified": true,
+      "memberCount": 8893
+    },
+    "nsisInstaller": {
+      "file": "dist/releases/WechatVibe-tauri2-1.2.4-windows-x64-setup.exe",
+      "bytes": 130575255,
+      "sha256": "9ed7539a50e931b137394064c6486ae223e485133305b2688eafd7768eb5cc5d",
+      "extractedClientFilesVerified": 8050,
+      "backendLifecycleSmokePassed": true,
+      "installedForVerification": false
+    }
+  },
+  "published": false
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-desktop-choose-model-directory"
+description = "Enables the desktop_choose_model_directory command without any pre-configured scope."
+commands.allow = ["desktop_choose_model_directory"]
+
+[[permission]]
+identifier = "deny-desktop-choose-model-directory"
+description = "Denies the desktop_choose_model_directory command without any pre-configured scope."
+commands.deny = ["desktop_choose_model_directory"]

@@ -1,0 +1,9 @@
+{
+  "synthetic": true,
+  "workload": "2000 conversation/message timestamps; median of three rounds",
+  "runtime": "v24.18.0",
+  "beforeMs": 82.13,
+  "afterMs": 3,
+  "speedup": 27.35,
+  "localeOutputUnchanged": true
+}

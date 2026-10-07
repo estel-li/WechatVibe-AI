@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-desktop-report-ui-ready"
+description = "Enables the desktop_report_ui_ready command without any pre-configured scope."
+commands.allow = ["desktop_report_ui_ready"]
+
+[[permission]]
+identifier = "deny-desktop-report-ui-ready"
+description = "Denies the desktop_report_ui_ready command without any pre-configured scope."
+commands.deny = ["desktop_report_ui_ready"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-desktop-choose-data-root"
+description = "Enables the desktop_choose_data_root command without any pre-configured scope."
+commands.allow = ["desktop_choose_data_root"]
+
+[[permission]]
+identifier = "deny-desktop-choose-data-root"
+description = "Denies the desktop_choose_data_root command without any pre-configured scope."
+commands.deny = ["desktop_choose_data_root"]

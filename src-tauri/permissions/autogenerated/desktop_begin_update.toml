@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-desktop-begin-update"
+description = "Enables the desktop_begin_update command without any pre-configured scope."
+commands.allow = ["desktop_begin_update"]
+
+[[permission]]
+identifier = "deny-desktop-begin-update"
+description = "Denies the desktop_begin_update command without any pre-configured scope."
+commands.deny = ["desktop_begin_update"]

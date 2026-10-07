@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-desktop-get-model-download-state"
+description = "Enables the desktop_get_model_download_state command without any pre-configured scope."
+commands.allow = ["desktop_get_model_download_state"]
+
+[[permission]]
+identifier = "deny-desktop-get-model-download-state"
+description = "Denies the desktop_get_model_download_state command without any pre-configured scope."
+commands.deny = ["desktop_get_model_download_state"]

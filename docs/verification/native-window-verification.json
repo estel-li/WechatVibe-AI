@@ -1,0 +1,20 @@
+{
+  "synthetic": true,
+  "nativeDirectoryModality": "Both owned directory dialogs disabled the main Tauri window and returned null after Escape cancellation.",
+  "nativeResize": {
+    "passed": true,
+    "method": "Windows system menu: Alt+Space, Size, Right, Right",
+    "before": [
+      1180,
+      780
+    ],
+    "after": [
+      1191,
+      780
+    ]
+  },
+  "titlebarDrag": {
+    "verified": false,
+    "reason": "No measurable movement from batched Computer Use drag. The adapter exposes no separate mouse button hold; CDP does not set physical Windows button state."
+  }
+}
