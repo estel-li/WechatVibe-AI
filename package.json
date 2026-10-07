@@ -1,6 +1,6 @@
 {
   "name": "wechatvibe-tauri2",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "type": "module",
   "description": "知意 AI / WechatVibe AI：本机微信会话分析、AI 总结与回复辅助客户端",
@@ -49,12 +49,12 @@
     "name": "estel-li",
     "url": "https://github.com/estel-li"
   },
-  "homepage": "https://github.com/estel-li/WechatVibe-tauri2#readme",
+  "homepage": "https://github.com/estel-li/WechatVibe-AI#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/estel-li/WechatVibe-tauri2.git"
+    "url": "git+https://github.com/estel-li/WechatVibe-AI.git"
   },
   "bugs": {
-    "url": "https://github.com/estel-li/WechatVibe-tauri2/issues"
+    "url": "https://github.com/estel-li/WechatVibe-AI/issues"
   }
 }

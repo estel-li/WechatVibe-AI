@@ -11,7 +11,7 @@ const { execFileSync, spawnSync } = require("node:child_process");
 const source = path.join(__dirname, "real-client-update.cjs");
 const extractor = path.join(__dirname, "real-client-update-extract.py");
 const builder = path.join(__dirname, "build-update-manifest.cjs");
-const releaseBase = "https://github.com/estel-li/WechatVibe-tauri2/releases";
+const releaseBase = "https://github.com/estel-li/WechatVibe-AI/releases";
 const version = "1.0.2";
 const archiveName = "WechatVibe-tauri2-" + version + "-windows-x64.zip";
 const sha256 = bytes => crypto.createHash("sha256").update(bytes).digest("hex");
@@ -72,7 +72,7 @@ function fixture(archiveBytes, privateKey) {
 
 function fakeFetch(data, changeResponse) {
   return async (url, options) => {
-    if (url === "https://api.github.com/repos/estel-li/WechatVibe-tauri2/releases/latest") {
+    if (url === "https://api.github.com/repos/estel-li/WechatVibe-AI/releases/latest") {
       assert.equal(options.redirect, "error");
       return new Response(JSON.stringify(data.release));
     }

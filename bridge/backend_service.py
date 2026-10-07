@@ -135,6 +135,12 @@ class Backend:
         self.model_source_store = model_source_store or ModelSourceStore(
             ROOT / ".local" / "real-client-runtime" / "api-model-source.json", root=ROOT,
             legacy_path=ROOT / ".local" / "real-client-runtime" / "model-source.json")
+        if model_source_store is None:
+            try:
+                self.model_source_store.migrate_assistant_profile(
+                    ROOT / ".local" / "real-client-runtime" / "assistant-model-source.json")
+            except ModelSourceUnavailable:
+                pass
         # API chat insights have their own source-scoped cache. The local Laya
         # portrait/affinity worker keeps its existing analysis version.
         # One ApiTaskCoordinator owns the lock/condition, the three registries and
@@ -269,7 +275,7 @@ class Backend:
                 self.request_condition.notify_all()
 
     def assistant_service(self):
-        """Interactive generation keeps its API profile separate from analysis."""
+        """Interactive generation uses the API profile from general settings."""
         with self._assistant_lock:
             if self.closing:
                 raise RuntimeError("bridge is closing")
@@ -277,6 +283,11 @@ class Backend:
                 from ai_assistant import AssistantService
                 self._assistant_service = AssistantService(self, root=ROOT)
             return self._assistant_service
+
+    def _assistant_model_changed(self):
+        service = getattr(self, "_assistant_service", None)
+        if service is not None:
+            service.model_config_changed()
 
     def _close_assistant(self):
         with self._assistant_lock:
@@ -689,8 +700,6 @@ class Backend:
             raise ValueError("invalid model source request")
         values = connection_values({key: value for key, value in request.items() if key != "mode"},
                                    require_model=True)
-        if values["contextTokens"] is None:
-            raise ValueError("contextTokens required")
         with self.api_lock:
             key = self.model_source_store.resolve_key(values["protocol"], values["baseUrl"],
                                                       values["apiKey"])
@@ -729,6 +738,7 @@ class Backend:
             if previous_context != values["contextTokens"]:
                 self.api_tasks.drop_portrait_error(source_id)
             self.model_source_revision += 1
+            self._assistant_model_changed()
             return self.model_source()
 
     def model_source_clear_key(self, request):
@@ -743,6 +753,7 @@ class Backend:
             self.model_source_revision += 1
             if was_api:
                 self._cancel_api_source_work_locked()
+            self._assistant_model_changed()
             return self.model_source()
 
     def model_insights(self, user, ids=None):

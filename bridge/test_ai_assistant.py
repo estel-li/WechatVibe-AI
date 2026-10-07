@@ -207,14 +207,14 @@ class AssistantTests(unittest.TestCase):
                                             "contextTokens": context})
                 before = self.store.path.read_bytes()
                 settings = self.service.settings()
-                self.assertEqual(settings["contextTokens"], context)
+                self.assertEqual(settings["contextTokens"], context if context is not None else 1000000)
                 self.assertFalse(settings["contextUpgradeAvailable"])
                 self.assertEqual(self.store.path.read_bytes(), before)
 
-    def test_first_custom_configuration_without_capacity_keeps_previous_safe_default(self):
+    def test_first_custom_configuration_without_capacity_uses_one_million_default(self):
         settings = self.service.save_settings({"preset": "custom", "baseUrl": "https://custom.example/v1",
                                                "model": "custom-model"})
-        self.assertEqual(settings["contextTokens"], 65536)
+        self.assertEqual(settings["contextTokens"], 1000000)
         self.assertFalse(settings["contextUpgradeAvailable"])
 
     def test_clear_key_does_not_reuse_old_ciphertext(self):
@@ -265,7 +265,7 @@ class AssistantTests(unittest.TestCase):
         self.assertEqual(result["status"], "completed")
         config = self.analyzers[0].calls[0][0]
         self.assertNotIn("apiKey", config)
-        self.assertNotIn("contextTokens", config)
+        self.assertEqual(config["contextTokens"], 1000000)
 
     def test_whole_conversation_reads_all_pages_and_reports_exact_coverage(self):
         self.configure()

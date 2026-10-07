@@ -18,7 +18,7 @@ const code = section("async function api(", "function status(") +
   section("labelState.messageLabels = null;", "function messageInsightView(") +
   section("function messageInsightView(", "function clearInlineIntentPending(") +
   section("function updateLabel(", "function messageNode(") +
-  section("const MODEL_SOURCE_PROTOCOLS", "let managedAccounts = [];") +
+  section("const AI_SERVICE_PRESETS", "let managedAccounts = [];") +
   section("let analysisCacheRequest = 0;", "async function loadAnalysisCache") +
   "globalThis.ui = { showModelSource, updateLabel, validApiInsight, parseApiPartialLabels, renderApiInsightResult, " +
   "ensureApiInsights, fetchApiInsightResults, cancelApiInsightWork, activeApiInsightKey, apiInsightCache, " +

@@ -1,55 +1,42 @@
-# 知意 AI 对话助手（1.1.0）
+# 知意 AI 对话助手（1.2.1）
 
-知意 AI（WechatVibe AI）在“意图识别”“人物画像”右侧提供“AI 总结”和“帮我回复”，也可从“设置 → 通用设置 → AI 对话助手”预先配置。[1.1.0 安装版和绿色版](https://github.com/estel-li/WechatVibe-tauri2/releases/tag/v1.1.0)均包含此功能。
+知意 AI / WechatVibe AI 在当前聊天的输入框上方提供“AI 总结”和“帮我回复”。两项功能共用“设置 → 通用设置”中保存的 API 模型。助手弹窗只有两个功能页，模型配置集中在通用设置。
 
-## 使用
+## 统一配置模型
 
-在“模型与提示词”选择 DeepSeek 官方预设或自定义接口，输入 API 地址和自己的 Key，获取模型或手动输入模型 ID，测试连接后保存。助手模型与原有意图、画像模型各自配置。兼容 Chat Completions、Responses、Anthropic、Gemini 和 Ollama 接口。
+通用设置选择“API 接入”，再选择 DeepSeek、MiniMax、智谱 Zhipu、Kimi、硅基流动或自定义 API。输入该服务的 Key，获取模型列表或手动填入模型 ID，测试后“保存并启用”。接口支持 Chat Completions、Responses、Anthropic、Gemini 和 Ollama。切换服务预设会填写地址并清空未保存的 Key 和模型 ID。
 
-DeepSeek 官方 `deepseek-flash` 和 `deepseek-v4-pro` 的上下文为 1M tokens，见 [官方模型说明](https://api-docs.deepseek.com/quick_start/pricing)。新建官方配置默认使用 **1,000,000**；自定义服务应填写该服务实际支持的容量。应用仍会为提示词和输出留出空间，超出预算的完整历史会分段处理，而不是截取末尾消息。
+新配置上下文默认 **1,000,000（1M）tokens**。已有的明确容量保留；服务返回较小容量或用户调整容量时按该值处理。应用为提示词与输出留出空间，较长历史分段处理后合并。
 
-旧配置中的任何已保存数值都保留，包括过去的 65,536：旧存储没有记录它是默认值还是用户主动选择，不能据此覆盖你的设置。已识别的官方模型会在设置中提供“使用官方 1M 容量”，点击后还需“保存设置”才会持久化；自定义地址、模型以及旧 `deepseek-chat` / `deepseek-reasoner` 不会自动提升。官方配置若没有保存容量，则读取时采用新的默认值，保存时写入配置。读取设置不会解密 Key、改写旧文件或发起 API 请求。
+| 服务 | 预设 Base URL | 官方说明 |
+| --- | --- | --- |
+| DeepSeek | `https://api.deepseek.com` | [API 文档](https://api-docs.deepseek.com/) |
+| MiniMax | `https://api.minimax.cn/v1` | [OpenAI SDK](https://platform.minimax.cn/docs/api-reference/text-openai-api) |
+| 智谱 | `https://open.bigmodel.cn/api/paas/v4` | [OpenAI 兼容](https://docs.bigmodel.cn/cn/guide/develop/openai/introduction) |
+| Kimi | `https://api.moonshot.cn/v1` | [快速开始](https://platform.kimi.com/docs/get-api-key) |
+| 硅基流动 | `https://api.siliconflow.cn/v1` | [快速开始](https://docs.siliconflow.cn/docs/userguide/quickstart) |
 
-“AI 总结”支持当前会话的全部历史或指定起止时间；包含尚未滚动加载的消息。长对话自动分批并合并，显示读取和生成进度。时间范围包含起止时刻，消息附带本机时区的可读日期。图片、语音等使用已有类型描述。
+意图识别、人物画像、总结和回复使用同一套保存的 API 地址、Key、模型与容量。分析模式切回本地 Laya 后，总结和回复仍使用已保存的 API。旧版仅有助手配置时，将其加密配置迁移到统一存储，不自动开启 API 分析；已有通用配置时保留通用配置，旧助手文件留作备份。
 
-总结与回复都有“最近1天 / 最近一周 / 最近一月”：前两项分别取点击时刻之前的24、168小时；一月按本地日历回推，正确处理月底与闰年。点击后自动切换到指定时间，填写秒级起止时刻，仍可手动调整。
+## 提示词与生成
 
-长对话的内部笔记有明确的压缩目标与输出余量。如果某段因输出上限截断，会使用完整原片段、更多输出空间和更精简的目标重新整理一次。重复截断会明确失败；完整笔记才参与合并。最终总结最多使用16K输出预算，最终流式响应必须正常完成。
+“对话总结”提供 7 条预设：全面总结、决定与分歧、时间线回顾、情绪与沟通、待办与行动、群聊要点、简明速览。下拉选择后直接展示提示词，可编辑并点击“保存总结提示词”；每条预设分别保留修改。可额外填写本次要求。
 
-“帮我回复”默认参考最近 80 条记录，也可使用全部或指定时间范围。普通朋友、亲密朋友、同事、亲戚、长辈有各自的基础提示词；支持编辑保存和自定义关系。可补充本次要求，不满意时重新生成。结果可复制或插入原有草稿框，发送由用户自行完成。
+“帮我回复”提供 6 条预设：普通朋友、亲密朋友、同事、亲戚、长辈、通用回复/自定义关系。分别提供自然友好、情绪承接、专业清晰、亲切有礼、尊重耐心和自定义语气的完整提示词。可编辑并点击“保存回复提示词”，或补充本次想表达的内容。两个页面分别保存，保存提示词不修改模型配置或密钥。
 
-点击取消、关闭助手或切换会话会停止旧任务并清除过期输出。更改账号、清除账号或退出应用也会结束所属任务。API Key 通过 Windows DPAPI 加密保存，不回传明文、不进入浏览器 localStorage。生成结果只保留在进程内存中。
+总结可读取全部历史或指定时间范围，包含界面尚未加载的记录；回复默认读取最近 80 条，也可选择全部或指定时间。两页都有最近 1 天、最近一周、最近一月的快捷按钮；前两项按 24、168 小时回推，一月按本地日历回推并处理月底和闰年，精确到秒。
 
-## 实现
+较长对话使用完整片段分批整理。内部笔记截断时会用完整原片段和更多输出空间重试一次；失败不会使用残缺笔记。最终响应必须完整结束，进度记录所选消息的覆盖情况。
 
-`chatui/ai-assistant.js` 和样式提供独立弹窗，通过 `/api/assistant/` 访问服务。`bridge/ai_assistant.py` 直接分页读取微信数据源，以稳定的历史上界完成范围快照；客户端不能提交聊天内容替代真实读取。服务启动独立 Node 分析进程，取消不会影响原有意图、画像任务。
-
-`analysis/ai-assistant.ts` 按实际上下文预算分块，超长单条消息无损拆分，多批结果逐层合并。所有选中记录都会参与处理，返回消息数量、分块数量和覆盖信息。提示词将聊天记录与旧草稿明确作为数据，要求避免捏造事实和额外承诺。内部整理过程不作为最终回复流出。
+结果可重新生成、复制或放入原有草稿框，由用户检查后使用，应用不会发送微信消息。关闭助手、切换会话或账号、更改 API 模型或清除 Key 会取消旧任务并清除过期结果。API Key 使用 Windows DPAPI 加密，不回传明文或写入浏览器存储；生成结果只保留在进程内存中。
 
 ## 验证与复现
 
-2026-10-07 完整 `npm test` 通过：487 项 Node 测试、494 项 Python 测试、8 个脚本测试套件及 4 项 Rust 测试。其中助手覆盖超长 Unicode 消息、全历史覆盖、时间边界、所有关系、自定义和重新生成、配置隔离、敏感信息错误处理，以及取消竞争。1295条合成消息复现为7段，首段截断后完整恢复，消息覆盖齐全、进度为9/9；真实HTTP→Python→Node→合成模型链路同时验证恢复成功与重复截断及时停止。
-
-此前真实 DeepSeek 官方接口使用临时凭证和合成对话验证了模型获取、连接测试、全量总结、时间范围总结、同事回复及自定义关系重新生成，均完成。本次长历史修复使用合成模型服务验证。测试未读取真实微信聊天，凭证未预置到源码或包内。
-
-打包后的 Tauri/WebView2 使用包内 Python、Node、UI 和服务，接入本地合成模型服务进行验证，20项原生检查通过。验证包括双语品牌、完整1305条历史（含最早的未加载消息）、首段截断后的完整恢复、时间范围10条、总结/回复的六个快捷时间按钮、五种关系、自定义要求、重新生成、原生剪贴板、插入草稿、取消与切换会话、获取模型、测试连接、提示词保存、焦点及小窗口缩放。修复验证记录见 [长历史与品牌验证](verification/assistant-long-history/verification.json)，此前首次功能验证见 [原记录](verification/assistant-1.1.0/verification.json)。
-
-发布包包含 Node/Python 运行时，绿色版保留完整目录后启动 `WechatVibe.exe`；本地构建也可以通过 `scripts/build-tauri-portable.py` 生成。升级请保留原有 `client/.local` 与 `client/.models`，详见 [发布说明](https://github.com/estel-li/WechatVibe-tauri2/releases/tag/v1.1.0)。
+完整回归和两个发行包的原生检查见 [1.2.1 发行验证](https://github.com/estel-li/WechatVibe-AI/blob/v1.2.1/docs/verification/release-1.2.1.json)。本轮使用本机合成模型服务和虚构记录，未读取真实微信聊天或调用外部付费 API。验证覆盖统一配置、旧配置迁移、提示词分别保存、完整 1305 条历史、截断恢复、时间边界、回复预设、重新生成、剪贴板、草稿、小窗口、取消和模型切换。
 
 ```powershell
-# 完整回归
 npm test
-
-# 使用包内运行时和服务重跑原生验证；只使用合成记录与本地模型接口
-python scripts/verify-ai-assistant.py --exe dist/WechatVibe-AI-1.1.0/WechatVibe.exe
+python scripts/verify-ai-assistant.py --exe dist/WechatVibe-AI-1.2.1-release/WechatVibe.exe
 ```
 
-原生验证需要 Windows、WebView2、项目 Playwright 依赖和已构建的可运行目录。输出写入 `.local/assistant-verification/`，测试关闭自己启动的进程并恢复原剪贴板文本。
-
-![全量总结](verification/assistant-1.1.0/08-assistant-all-summary.png)
-
-![时间范围总结](verification/assistant-1.1.0/09-assistant-time-summary.png)
-
-![自定义关系回复](verification/assistant-1.1.0/10-assistant-custom-reply.png)
-
-![小窗口模型设置](verification/assistant-1.1.0/11-assistant-small-settings.png)
+原生验证需要 Windows、WebView2、项目 Playwright 依赖及完整可运行目录。输出位于 `.local/`，测试恢复原剪贴板并关闭自身启动的进程。下载与升级见 [1.2.1 发布页](https://github.com/estel-li/WechatVibe-AI/releases/tag/v1.2.1)。

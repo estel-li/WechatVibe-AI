@@ -66,27 +66,27 @@ function harness(handler, readSettings = settings, clock) {
     close() { nodes.get("btnCloseAssistant").click(); } };
 }
 
-test("assistant starts no service/API calls until explicitly opened and model discovery sends only connection fields", async () => {
-  const h = harness(async url => url.endsWith("models") ? { models: [{ id: "model-x" }, { id: "model-y" }] } : {});
-  h.api.setConversation({ account: "test-account", user: "alice" });
-  assert.equal(h.requests.length, 0);
-  await h.open(); h.node("assistantTabSettings").click(); h.node("btnAssistantModels").click(); await tick();
-  assert.deepEqual(h.requests.at(-1).body, { protocol: "chat_completions", baseUrl: "https://api.deepseek.com" });
-  assert.equal(h.node("assistantModelOptions").children.length, 2);
-  assert.match(h.node("assistantConfigStatus").textContent, /2 个模型/); h.close();
+test("assistant reads the shared profile only on open and exposes no second model form", async () => {
+  const h = harness(async () => ({}));
+  h.api.setConversation({ account: "test-account", user: "alice" }); assert.equal(h.requests.length, 0);
+  await h.open(); assert.equal(h.requests.length, 1); assert.equal(h.requests[0].body, undefined);
+  for (const id of ["assistantTabSettings", "assistantApiKey", "assistantBaseUrl", "assistantModel", "assistantSettingsPanel"])
+    assert.equal(h.nodes.has(id), false);
+  assert.match(h.node("assistantModelInfo").textContent, /共用通用设置/); h.close();
 });
 
-test("relationship edits persist together with independently configured model and secret input is cleared after saving", async () => {
+
+test("reply presets save their own prompts without sending any model or secret fields", async () => {
   let saved;
-  const h = harness(async (url, body) => { saved = body; return { ...settings(), ...body, hasKey: true }; });
+  const h = harness(async (url, body) => { saved = body; return { ...settings(), ...body }; });
   await h.open(); h.input("assistantReplyPrompt", "我的朋友提示"); h.change("assistantRelationship", "elder");
   assert.equal(h.node("assistantReplyPrompt").value, "长辈提示");
-  h.input("assistantReplyPrompt", "尊重长辈并保持边界"); h.node("assistantTabSettings").click();
-  h.input("assistantApiKey", "synthetic-not-a-live-key"); h.node("btnAssistantSave").click(); await tick();
+  h.input("assistantReplyPrompt", "尊重长辈并保持边界"); h.node("btnAssistantSaveReplyPrompt").click(); await tick();
   assert.equal(saved.relationshipPrompts.friend, "我的朋友提示"); assert.equal(saved.relationshipPrompts.elder, "尊重长辈并保持边界");
-  assert.equal(saved.defaultRelationship, "elder"); assert.equal(h.node("assistantApiKey").value, "");
-  assert.equal("source" in saved, false); h.close();
+  assert.deepEqual(Object.keys(saved).sort(), ["defaultRelationship", "relationshipPrompts"]);
+  assert.equal(saved.defaultRelationship, "elder"); h.close();
 });
+
 
 test("reply regeneration captures previous answer and copy/insert use safe text without sending", async () => {
   let count = 0;
@@ -121,14 +121,15 @@ test("closing during job creation keeps request alive until cancellation can ide
   assert.equal(h.requests.at(-1).url, "/api/assistant/cancel");
 });
 
-test("invalid time range stays local, valid summary range sends exact milliseconds, changed API settings block generation", async () => {
+test("invalid time range stays local, valid summary range sends exact milliseconds, shared model changes reload the confirmed configuration", async () => {
   const h = harness(async (url, body) => ({ id: "summary", account: body.account, user: body.user, kind: body.kind, status: "completed", text: "总结" }));
   await h.open("summary"); h.change("assistantSummaryRange", "time"); h.node("btnAssistantSummary").click(); await tick();
   assert.match(h.node("assistantJobStatus").textContent, /有效的开始和结束时间/); assert.equal(h.requests.length, 1);
   h.node("assistantSummaryFrom").value = "2026-10-01T08:00"; h.node("assistantSummaryTo").value = "2026-10-02T18:30";
   h.node("btnAssistantSummary").click(); await tick();
   assert.equal(h.requests.at(-1).body.fromMs, new Date("2026-10-01T08:00").getTime()); assert.equal(h.requests.at(-1).body.range, "time");
-  h.input("assistantBaseUrl", "https://new-provider.test/v1"); assert.equal(h.node("btnAssistantSummary").disabled, true); h.close();
+  h.api.modelChanged(); assert.equal(h.node("btnAssistantSummary").disabled, true); await tick();
+  assert.equal(h.node("btnAssistantSummary").disabled, false); h.close();
 });
 
 test("Escape closes the modal and restores focus; tab boundaries stay in the visible dialog", async () => {
@@ -140,26 +141,29 @@ test("Escape closes the modal and restores focus; tab boundaries stay in the vis
   assert.equal(h.node("assistantModal").hidden, true); assert.equal(h.document.activeElement, trigger); assert.equal(prevented, 3);
 });
 
-test("cleared official key is obvious and blocks generation, while custom services without authentication remain usable", async () => {
-  const h = harness(async (url, body) => ({ ...settings(), ...body, hasKey: false }));
-  await h.open(); h.node("assistantTabSettings").click(); h.node("assistantClearKey").checked = true;
-  h.node("assistantClearKey").dispatchEvent({ type: "input" }); h.node("btnAssistantSave").click(); await tick();
-  assert.match(h.node("assistantModelInfo").textContent, /尚未保存 API Key/); assert.equal(h.node("btnAssistantReply").disabled, true);
-  h.change("assistantPreset", "custom"); h.input("assistantBaseUrl", "https://custom.example.test/v1");
-  h.input("assistantContextTokens", "1000001"); const before = h.requests.length; h.node("btnAssistantSave").click(); await tick();
-  assert.equal(h.requests.length, before); assert.match(h.node("assistantConfigStatus").textContent, /4096 至 1,000,000/);
-  h.input("assistantContextTokens", "4096"); h.node("btnAssistantSave").click(); await tick();
-  assert.equal(h.node("btnAssistantReply").disabled, false); assert.match(h.node("assistantModelInfo").textContent, /未配置 Key/); h.close();
+test("missing general-settings credentials block official generation, while a local API can be unauthenticated", async () => {
+  const h = harness(async () => ({}), () => ({ ...settings(), hasKey: false }));
+  await h.open(); assert.match(h.node("assistantModelInfo").textContent, /通用设置.*API Key/);
+  h.node("btnAssistantReply").click(); assert.equal(h.requests.length, 1); h.close();
+  const local = harness(async () => ({}), () => ({ ...settings(), preset: "custom", hasKey: false }));
+  await local.open(); assert.equal(local.node("btnAssistantReply").disabled, false); local.close();
 });
 
-test("switching API endpoint, protocol or preset cannot forward a previous unsaved key", async () => {
-  const h = harness(async () => ({ models: [] })); await h.open(); h.node("assistantTabSettings").click();
-  h.input("assistantApiKey", "synthetic-key-one"); h.input("assistantBaseUrl", "https://custom.example.test/v1");
-  assert.equal(h.node("assistantApiKey").value, ""); h.node("btnAssistantModels").click(); await tick();
-  assert.equal("apiKey" in h.requests.at(-1).body, false);
-  h.input("assistantApiKey", "synthetic-key-two"); h.input("assistantProtocol", "anthropic"); assert.equal(h.node("assistantApiKey").value, "");
-  h.input("assistantApiKey", "synthetic-key-three"); h.change("assistantPreset", "deepseek"); assert.equal(h.node("assistantApiKey").value, ""); h.close();
+
+test("each summary preset has an editable prompt and saves separately from reply prompts", async () => {
+  let saved;
+  const h = harness(async (url, body) => { saved = body; return { ...settings(), ...body }; });
+  await h.open("summary"); assert.equal(h.node("assistantSummaryPreset").children.length, 7);
+  h.input("assistantSummaryPrompt", "保留我修改过的完整总结"); h.change("assistantSummaryPreset", "tasks");
+  assert.match(h.node("assistantSummaryPrompt").value, /负责人.*截止时间/);
+  h.input("assistantSummaryPrompt", "只整理已经确认的待办"); h.change("assistantSummaryPreset", "general");
+  assert.equal(h.node("assistantSummaryPrompt").value, "保留我修改过的完整总结");
+  h.node("btnAssistantSaveSummaryPrompt").click(); await tick();
+  assert.equal(saved.summaryPrompts.tasks, "只整理已经确认的待办");
+  assert.equal(saved.summaryPrompt, "保留我修改过的完整总结");
+  assert.deepEqual(Object.keys(saved).sort(), ["summaryPreset", "summaryPrompt", "summaryPrompts"]); h.close();
 });
+
 
 test("native copy is invoked during the click and denied browser clipboard still falls back without changing the draft", async () => {
   const h = harness(async (url, body) => ({ id: "copy", account: body.account, user: body.user, kind: "reply", status: "completed", text: "捕获的回复" }));
@@ -180,29 +184,27 @@ test("late native copy failure after a conversation switch does not create a fal
   reject(new Error("native unavailable")); await tick(); assert.deepEqual(h.copied, []); assert.equal(h.node("assistantResultText").textContent, ""); h.close();
 });
 
-test("closing during an explicit save rereads the authoritative model on reopen after the save settles", async () => {
+test("closing during a prompt save awaits its completion before reopening the shared model", async () => {
   let authoritative = settings(), resolve;
   const h = harness(async () => new Promise(done => { resolve = done; }), () => authoritative);
-  await h.open(); h.node("assistantTabSettings").click(); h.input("assistantModel", "new-model");
-  h.node("btnAssistantSave").click(); await tick(); const saving = h.requests.at(-1); h.close();
+  await h.open(); h.node("btnAssistantSaveReplyPrompt").click(); await tick(); const saving = h.requests.at(-1); h.close();
   assert.equal(saving.options.signal.aborted, false); await h.open(); assert.equal(h.node("btnAssistantReply").disabled, true);
   authoritative = { ...settings(), model: "new-model" }; resolve(authoritative); await tick();
-  assert.equal(h.node("assistantModel").value, "new-model"); assert.match(h.node("assistantModelInfo").textContent, /new-model/);
+  assert.match(h.node("assistantModelInfo").textContent, /new-model/);
   assert.equal(h.requests.filter(item => item.url.endsWith("settings") && !item.body).length, 2);
-  assert.equal(h.node("btnAssistantReply").disabled, false); assert.equal(h.node("assistantApiKey").value, ""); h.close();
+  assert.equal(h.node("btnAssistantReply").disabled, false); h.close();
 });
 
-test("general settings can configure the assistant before an account or chat exists, while generation stays guarded", async () => {
-  const h = harness(async (url, body) => url.endsWith("models") ? { models: [{ id: "custom-model" }] } : { ...settings(), ...body });
-  assert.equal(h.api.open("reply"), false); assert.equal(h.api.open("summary"), false); assert.equal(h.node("assistantModal").hidden, true);
-  const trigger = h.node("btnOpenAssistantSettings"); trigger.focus(); trigger.click(); await tick();
-  assert.equal(h.node("assistantSettingsPanel").hidden, false); assert.equal(h.node("btnAssistantReply").disabled, true); assert.equal(h.node("btnAssistantSummary").disabled, true);
-  h.node("btnAssistantModels").click(); await tick(); assert.equal(h.node("assistantModelOptions").children[0].value, "custom-model");
-  h.input("assistantModel", "custom-model"); h.node("btnAssistantSave").click(); await tick();
-  assert.equal(h.node("btnAssistantReply").disabled, true); h.node("btnAssistantReply").click(); h.node("btnAssistantSummary").click();
+
+test("assistant links to the single general settings form and generation requires a selected chat", async () => {
+  const h = harness(async () => ({}));
+  assert.equal(h.api.open("reply"), false); assert.equal(h.api.open("settings"), false);
+  let opened = 0; h.window.openAIModelSettings = () => { opened++; };
+  await h.open(); h.node("btnAssistantGeneralSettings").click();
+  assert.equal(opened, 1); assert.equal(h.node("assistantModal").hidden, true);
   assert.equal(h.requests.some(item => item.url.includes("/jobs")), false);
-  assert.equal(h.requests.every(item => item.url.startsWith("/api/assistant/")), true); h.close(); assert.equal(h.document.activeElement, trigger);
 });
+
 
 test("day and week shortcuts use rolling hours, click-time seconds and the existing exact time request format", async () => {
   let now = new Date(2026, 9, 7, 12, 34, 56, 987).getTime();
@@ -236,17 +238,17 @@ test("month shortcuts clamp month ends for ordinary, leap and year-boundary date
   assert.equal(h.requests.at(-1).body.fromMs, new Date(2025, 11, 31, 18, 45, 12).getTime()); h.close();
 });
 
-test("official context upgrade is explicit and saved, while a custom capacity survives preset round trips", async () => {
-  let saved;
-  const legacy = () => ({ ...settings(), contextUpgradeAvailable: true });
-  const h = harness(async (url, body) => { saved = body; return { ...legacy(), ...body, contextUpgradeAvailable: false }; }, legacy);
-  await h.open(); h.node("assistantTabSettings").click(); assert.equal(h.node("assistantContextTokens").value, 65536);
-  assert.equal(h.node("btnAssistantUpgradeContext").hidden, false); h.node("btnAssistantUpgradeContext").click();
-  assert.equal(h.node("assistantContextTokens").value, 1000000); assert.equal(h.node("btnAssistantReply").disabled, true);
-  assert.match(h.node("assistantConfigStatus").textContent, /尚未保存/); assert.equal(h.requests.length, 1);
-  h.node("btnAssistantSave").click(); await tick(); assert.equal(saved.contextTokens, 1000000); assert.equal(h.node("btnAssistantUpgradeContext").hidden, true); h.close();
-  const custom = harness(async () => ({}), () => ({ ...settings(), preset: "custom", baseUrl: "https://custom.example.test", contextTokens: 8192 }));
-  await custom.open(); assert.equal(custom.node("assistantContextTokens").value, 8192);
-  custom.change("assistantPreset", "deepseek"); assert.equal(custom.node("assistantContextTokens").value, 1000000);
-  custom.change("assistantPreset", "custom"); assert.equal(custom.node("assistantContextTokens").value, 8192); custom.close();
+test("all preset prompts reach generation unchanged and shared model refresh preserves draft prompts", async () => {
+  let current = settings();
+  const h = harness(async (url, body) => ({ id: "preset", account: body.account, user: body.user, kind: body.kind, status: "completed", text: "结果" }), () => current);
+  await h.open("summary");
+  for (const option of h.node("assistantSummaryPreset").children) {
+    h.change("assistantSummaryPreset", option.value); const prompt = h.node("assistantSummaryPrompt").value;
+    assert.ok(prompt.trim().length > 0); h.node("btnAssistantSummary").click(); await tick();
+    assert.equal(h.requests.at(-1).body.systemPrompt, prompt);
+  }
+  h.input("assistantSummaryPrompt", "尚未保存的总结要求"); current = { ...settings(), model: "shared-model-two" };
+  h.api.modelChanged(); await tick(); assert.match(h.node("assistantModelInfo").textContent, /shared-model-two/);
+  assert.equal(h.node("assistantSummaryPrompt").value, "尚未保存的总结要求"); h.close();
 });
+

@@ -45,6 +45,75 @@ class CancellableAnalyzer(FakeAnalyzer):
 
 
 class ModelSourceTests(unittest.TestCase):
+    def test_assistant_migration_keeps_encrypted_key_and_does_not_enable_api(self):
+        old = ModelSourceStore(self.path.parent / "assistant-model-source.json", root=self.root,
+                              protect=self.store.protect, unprotect=self.store.unprotect)
+        old.save_api("chat_completions", "https://old.example.test/v1", "old-model",
+                     "synthetic-old-key", context_tokens=8192)
+        before = old.path.read_bytes()
+        self.assertTrue(self.store.migrate_assistant_profile(old.path))
+        self.assertEqual(self.store.saved_selection()["selectedMode"], "local")
+        self.assertEqual(self.store.public()["api"]["contextTokens"], 8192)
+        self.assertEqual(self.store.resolve_key("chat_completions", "https://old.example.test/v1", None),
+                         "synthetic-old-key")
+        self.assertEqual(old.path.read_bytes(), before)
+        self.store.save_api("responses", "https://new.example.test/v1", "new-model", "new-key", context_tokens=1000000)
+        self.assertFalse(self.store.migrate_assistant_profile(old.path))
+        self.assertEqual(self.store.public()["api"]["model"], "new-model")
+
+    def test_assistant_uses_general_profile_and_prompt_saves_leave_profile_unchanged(self):
+        from ai_assistant import AssistantService
+        self.backend._assistant_service = service = AssistantService(self.backend, root=self.root)
+        self.addCleanup(service.close)
+        self.assertIs(service.store, self.store)
+        self.assertEqual(service.settings()["contextTokens"], 1000000)
+        service.save_settings({"summaryPrompt": "尚未配置模型也可保存提示词"})
+        self.assertFalse(self.path.exists())
+        self.backend.model_source_activate({"mode": "api", "protocol": "responses",
+            "baseUrl": "https://one.example.test/v1", "model": "model-one",
+            "apiKey": "synthetic-shared-key", "contextTokens": 1000000})
+        before = self.path.read_bytes()
+        self.assertEqual(service.settings()["model"], "model-one")
+        revision = service.settings_revision
+        service.save_settings({"summaryPrompt": "已修改的总结", "summaryPreset": "tasks",
+            "summaryPrompts": {"tasks": "提取已确认待办"}})
+        self.assertEqual(before, self.path.read_bytes())
+        reloaded = AssistantService(self.backend, root=self.root)
+        self.addCleanup(reloaded.close)
+        self.assertEqual(reloaded.settings()["summaryPreset"], "tasks")
+        self.assertEqual(reloaded.settings()["summaryPrompts"]["tasks"], "提取已确认待办")
+        self.backend.model_source_activate({"mode": "local"})
+        self.assertEqual(service.settings()["model"], "model-one")
+        self.assertTrue(service.settings()["ready"])
+        self.backend.model_source_activate({"mode": "api", "protocol": "responses",
+            "baseUrl": "https://two.example.test/v1", "model": "model-two",
+            "contextTokens": 32768})
+        self.assertGreater(service.settings_revision, revision)
+        self.assertEqual(service.settings()["model"], "model-two")
+        self.assertIsNone(service._connection({}, True)["apiKey"])
+        self.backend.model_source_clear_key({})
+        self.assertFalse(service.settings()["hasKey"])
+
+    def test_general_model_change_cancels_running_assistant_and_clears_old_output(self):
+        from ai_assistant import AssistantService
+        from test_ai_assistant import Source, Analyzer
+        self.backend.source = Source(self.root)
+        self.backend.source.add(10)
+        analyzer = Analyzer()
+        analyzer.entered, analyzer.release = threading.Event(), threading.Event()
+        self.backend._assistant_service = service = AssistantService(self.backend,
+            root=self.root, analyzer_factory=lambda: analyzer)
+        self.addCleanup(service.close)
+        self.backend.model_source_activate({"mode": "api", "protocol": "responses",
+            "baseUrl": "https://shared.example.test/v1", "model": "model-one", "contextTokens": 1000000})
+        job = service.start_job({"account": self.backend.source.account, "user": "friend-a", "kind": "summary"})
+        self.assertTrue(analyzer.entered.wait(timeout=2))
+        self.backend.model_source_activate({"mode": "api", "protocol": "responses",
+            "baseUrl": "https://shared.example.test/v1", "model": "model-two", "contextTokens": 1000000})
+        result = service.get_job(job["account"], job["id"])
+        self.assertEqual(result["status"], "cancelled")
+        self.assertEqual(result["text"], "")
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -171,7 +240,9 @@ class ModelSourceTests(unittest.TestCase):
                 connection_values({**request, "contextTokens": value}, require_model=True)
         self.store.save_api("responses", "https://example.test/v1", "test-model",
                             "test-only-key")
-        self.assertIsNone(self.store.public()["api"]["contextTokens"])
+        self.assertEqual(self.store.public()["api"]["contextTokens"], 1000000)
+        self.assertEqual(connection_values(request, require_model=True)["contextTokens"], 1000000)
+        self.assertEqual(self.backend.model_source_activate({"mode": "api", **request})["api"]["contextTokens"], 1000000)
 
     def test_api_source_identity_survives_switches_restart_and_key_clear(self):
         def activate(model, key, context_tokens=8192, base_url="https://example.test/v1"):
@@ -319,8 +390,9 @@ class ModelSourceTests(unittest.TestCase):
         self.assertEqual(self.backend.analyzer.calls[0][-1], "test-only-key")
         status, missing = self.request(server, "POST", "/api/model-source/activate",
                                        {"mode": "api", **settings, "model": "test-model"})
-        self.assertEqual(status, 400)
-        self.assertEqual(self.backend.active_model_source_mode, "local")
+        self.assertEqual(status, 200)
+        self.assertEqual(missing["api"]["contextTokens"], 1000000)
+        self.assertEqual(self.backend.active_model_source_mode, "api")
         status, active = self.request(server, "POST", "/api/model-source/activate",
                                       {"mode": "api", **settings, "model": "test-model",
                                        "contextTokens": 128000})

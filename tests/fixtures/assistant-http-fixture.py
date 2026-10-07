@@ -14,6 +14,7 @@ import signal
 import sys
 import tempfile
 import threading
+from contextlib import nullcontext
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -25,6 +26,10 @@ sys.path.insert(0, str(CLIENT / "bridge"))
 from ai_assistant import AssistantService
 from backend_contracts import AccountChangedError
 from real_http import make_handler
+from backend_service import Backend
+from api_tasks import ApiTaskCoordinator
+from model_source import ModelSourceStore, LOCAL_SOURCE_ID
+from node_analysis import NodeAnalysis
 
 ACCOUNT = "synthetic-ui-verification"
 BASE_MS = 1760000000000
@@ -74,10 +79,24 @@ class SyntheticSource:
         return self.rows.get(user, [])[-limit:]
 
 
-class MinimalBackend:
+class MinimalBackend(Backend):
     def __init__(self, root):
         self.source, self.closing = SyntheticSource(root), False
+        self.model_source_store = ModelSourceStore(root / ".local/real-client-runtime/api-model-source.json",
+            root=root, protect=lambda value: b"synthetic:" + value.encode(),
+            unprotect=lambda value: value.removeprefix(b"synthetic:").decode())
+        self.api_tasks = ApiTaskCoordinator()
+        self.api_lock = self.api_tasks.lock
+        self.api_probe_analyzer = NodeAnalysis(api_only=True)
+        self.analyzer = self.api_analyzer = self.api_portrait_analyzer = self.api_probe_analyzer
+        self.model_source_revision = 0
+        self.active_model_source_mode, self.active_model_source_id = "local", LOCAL_SOURCE_ID
+        self.active_api_config = None
         self.service = AssistantService(self, root=root)
+        self._assistant_service = self.service
+
+    def request_lease(self):
+        return nullcontext()
 
     def assistant_service(self):
         return self.service
@@ -94,6 +113,7 @@ class MinimalBackend:
     def close(self):
         self.closing = True
         self.service.close()
+        self.api_probe_analyzer.cancel()
 
 
 class AssistantHttpFixture:
@@ -251,8 +271,9 @@ class AssistantHttpFixture:
         self.provider_url = f"http://127.0.0.1:{self.provider.server_port}/v1"
         self.assistant_url = f"http://127.0.0.1:{self.assistant.server_port}"
         self.threads = []
-        self.backend.service.save_settings({"preset": "custom", "protocol": "chat_completions",
-            "baseUrl": self.provider_url, "model": "synthetic-model", "contextTokens": 4096})
+        self.backend.model_source_store.save_api("chat_completions", self.provider_url,
+            "synthetic-model", None, context_tokens=4096)
+        self.backend.model_source_store.save_local()
 
     def respond(self, body):
         messages = body.get("messages", [])

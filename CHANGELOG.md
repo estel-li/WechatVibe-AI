@@ -1,6 +1,13 @@
 # 更新日志
 
-## [1.2.0](https://github.com/estel-li/WechatVibe-tauri2/releases/tag/v1.2.0) — 2026-10-07
+## 1.2.1 — 2026-10-07
+
+- AI 模型集中在通用设置，意图、画像、总结、回复共享一套 API 配置；兼容迁移旧助手设置。
+- 提供 DeepSeek、MiniMax、智谱、Kimi、硅基流动地址预设，新配置上下文默认 1M。
+- 移除助手的模型设置页；总结 7 条、回复 6 条提示词预设，分别编辑保存。
+- 更换共享模型或清除密钥时取消助手旧任务，项目与更新地址改为 WechatVibe-AI。
+
+## [1.2.0](https://github.com/estel-li/WechatVibe-AI/releases/tag/v1.2.0) — 2026-10-07
 
 - 在聊天和人物画像页增加共用的“分析模型”选择栏，可快速切换本地 Laya 与已保存的大语言模型，显示当前模型名称。
 - 支持从同一 API 服务已获取的模型中选择；使用已保存的服务配置与对应上下文容量，未知容量先确认后启用。
@@ -11,7 +18,7 @@
 
 使用与验证见 [分析模型快捷选择](docs/analysis-models.md)，下载与升级见 [1.2.0 发布说明](docs/releases/1.2.0.md)。
 
-## [1.1.0](https://github.com/estel-li/WechatVibe-tauri2/releases/tag/v1.1.0) — 2026-10-07
+## [1.1.0](https://github.com/estel-li/WechatVibe-AI/releases/tag/v1.1.0) — 2026-10-07
 
 - 产品名称更新为“知意 AI / WechatVibe AI”，采用青金罗盘图标。
 - 修复长对话首段整理超过输出上限时失败：增加压缩目标和输出预算，内部笔记截断后完整重做一次，保留全部消息覆盖。
@@ -26,7 +33,7 @@
 
 提供 Windows x64 安装版和绿色版，附带签名更新清单。下载与升级见 [1.1.0 发布说明](docs/releases/1.1.0.md)。首页截图使用实际软件界面与虚拟数据，新增 AI 总结、回复草稿和独立模型配置示例。
 
-## [1.0.0](https://github.com/estel-li/WechatVibe-tauri2/releases/tag/v1.0.0) — 2026-10-07
+## [1.0.0](https://github.com/estel-li/WechatVibe-AI/releases/tag/v1.0.0) — 2026-10-07
 
 Tauri 2 版独立首发，由 estel-li 维护，基于 tswawa/WechatVibe 的 Electron 项目移植。本版本号与上游分别维护。
 

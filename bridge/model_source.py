@@ -24,6 +24,7 @@ MAX_MODEL_ID = 256
 MAX_API_KEY = 4096
 MIN_CONTEXT_TOKENS = 4096
 MAX_CONTEXT_TOKENS = 1000000
+DEFAULT_CONTEXT_TOKENS = 1000000
 _MISSING = object()
 
 
@@ -83,7 +84,7 @@ def connection_values(request, require_model=False):
         if context_tokens is not None and (type(context_tokens) is not int or
                 not MIN_CONTEXT_TOKENS <= context_tokens <= MAX_CONTEXT_TOKENS):
             raise ValueError("invalid contextTokens")
-        result["contextTokens"] = context_tokens
+        result["contextTokens"] = context_tokens if context_tokens is not None else DEFAULT_CONTEXT_TOKENS
     return result
 
 
@@ -213,6 +214,24 @@ class ModelSourceStore:
                          "hasKey": bool(api["encryptedKey"])} if api else None),
                 "sourceId": source_id, "status": status}
 
+    def migrate_assistant_profile(self, legacy_path):
+        """Import an old assistant-only profile once, without enabling analysis.
+
+        An existing general-settings profile always wins. The DPAPI envelope is
+        copied unchanged; reading settings neither decrypts nor tests a key.
+        """
+        with self.lock:
+            if self._read() is not None:
+                return False
+            legacy = ModelSourceStore(legacy_path, root=self.root,
+                                      protect=self.protect, unprotect=self.unprotect)
+            saved = legacy._read()
+            if not saved:
+                return False
+            self._write({"version": 1, **saved, "selectedMode": "local",
+                         "sourceIds": legacy._source_ids(saved)})
+            return True
+
     def resolve_key(self, protocol, base_url, supplied_key):
         """A blank field can reuse a key only for its original protocol and host/path."""
         if supplied_key is not None:
@@ -229,6 +248,8 @@ class ModelSourceStore:
         if context_tokens is not None and (type(context_tokens) is not int or
                 not MIN_CONTEXT_TOKENS <= context_tokens <= MAX_CONTEXT_TOKENS):
             raise ValueError("invalid contextTokens")
+        if context_tokens is None:
+            context_tokens = DEFAULT_CONTEXT_TOKENS
         with self.lock:
             saved = self._read()
             source_ids = self._source_ids(saved)

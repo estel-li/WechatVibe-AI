@@ -6,7 +6,7 @@
     "nameZh": "知意 AI",
     "nameEn": "WechatVibe AI"
   },
-  "executableSha256": "a70600c3f67cf059216142823f64d0d4948f5e1eafc9d19ccf614f541e430233",
+  "executableSha256": "0c039fb2b460e73a11e3c686e7f4db4b1a1dc31bc0b2d1ef0af15c891819ffab",
   "viewport": {
     "width": 1280,
     "height": 960
@@ -16,74 +16,52 @@
   "shots": [
     {
       "file": "conversations-demo.png",
-      "purpose": "Choose fictional conversations through the real conversation manager",
-      "sha256": "fca0c3fa653a87a4dd4aa573aa16abe5cf62a328dcbe0251eedf5bffcdf86321",
-      "bytes": 98791
+      "purpose": "Choose fictional conversations through the real conversation manager"
     },
     {
       "file": "chat-demo.png",
-      "purpose": "Fictional dialogue, emotional/intent labels and a copy-only reply draft",
-      "sha256": "3bacf635c67be6e7d81fd3e6c8b57d5565327a0dcb091fd65bc3f2266b49d974",
-      "bytes": 95761
+      "purpose": "Fictional dialogue, emotional/intent labels and a copy-only reply draft"
     },
     {
       "file": "profile-demo.png",
-      "purpose": "Fictional personal portrait, MBTI tendency and interaction style",
-      "sha256": "f1c3f50db9aae0acd725d3357c0af581881e2ee2f0fb3b616e730ecfea849035",
-      "bytes": 118773
+      "purpose": "Fictional personal portrait, MBTI tendency and interaction style"
     },
     {
       "file": "group-profile-demo.png",
-      "purpose": "Fictional group portrait with unobstructed activity metrics and the actual member-selection control",
-      "sha256": "a2d8ce79adc9a11d7ab8d729359190ad8c162fb4e5815b0fbf8f4b37672ef7ff",
-      "bytes": 101541
+      "purpose": "Fictional group portrait with unobstructed activity metrics and the actual member-selection control"
     },
     {
       "file": "local-model-demo.png",
-      "purpose": "Real local-model controls displaying synthetic ready/runtime information",
-      "sha256": "f34959e5e95a1f8251ef71fd69ba17738555e40e7087f79d60cc7bfa9198f36e",
-      "bytes": 99055
+      "purpose": "Real local-model controls displaying synthetic ready/runtime information"
     },
     {
       "file": "api-settings-demo.png",
-      "purpose": "Actual protocol, model discovery and API test controls connected only to the synthetic fixture",
-      "sha256": "a6d4fed4a17c0a12c2d5462acb62706041567b3ea86067cece2052fd47ac2178",
-      "bytes": 101040
+      "purpose": "Actual protocol, model discovery and API test controls connected only to the synthetic fixture"
     },
     {
       "file": "cache-demo.png",
-      "purpose": "Actual model-source cache manager with fictional local/API cache counts",
-      "sha256": "56290156b8a034c73a6403adf934811ad68c9938e9ff2ed741a7d33d58eac025",
-      "bytes": 98033
+      "purpose": "Actual model-source cache manager with fictional local/API cache counts"
     },
     {
       "file": "ai-summary-demo.png",
-      "purpose": "Manual AI summary of the fictional complete conversation",
-      "sha256": "3ae47edc97470f889674da06b4288a42ff3462f738e5ad0c82d8b11becfafbf5",
-      "bytes": 100666
+      "purpose": "Manual AI summary of the fictional complete conversation"
     },
     {
       "file": "ai-time-summary-demo.png",
-      "purpose": "Summary of a chosen fictional date range with the actual time controls",
-      "sha256": "32778ecc5b7fcbbd7da01ab8c60e2c10e830561b30b5d8871d9bd29641beb9bc",
-      "bytes": 99157
+      "purpose": "Summary of a chosen fictional date range with the actual time controls"
     },
     {
       "file": "ai-reply-demo.png",
-      "purpose": "Contextual reply draft with relationship, instructions, regenerate/copy/insert controls and no send action",
-      "sha256": "8a89c15393c93572c2c16de47875a5e7dc1a036c925719e796bc7032ec88ef88",
-      "bytes": 100903
+      "purpose": "Contextual reply draft with relationship, instructions, regenerate/copy/insert controls and no send action"
     },
     {
       "file": "ai-assistant-settings-demo.png",
-      "purpose": "Independent manual-assistant model settings with an empty secret field and the 1M profile",
-      "sha256": "a86c9e5bf5899e35a9740fc08b355876997dcc18c341d7e05edf5eac73861acf",
-      "bytes": 103573
+      "purpose": "Actual summary prompt presets and editable prompt; model settings live in general settings"
     }
   ],
   "checks": [
     "All seven original screenshots use real native interface routes and fictional rich data",
-    "Four additional assistant screenshots show actual complete/time summaries, reply drafts and independent configuration"
+    "Four additional assistant screenshots show actual complete/time summaries, reply drafts and separate prompt presets"
   ],
   "note": "Contacts, dialogue, analysis labels, portraits and AI output are fictional demonstration data rendered by the real Tauri UI.",
   "remoteCalls": 0,
@@ -104,5 +82,6 @@
     "sessionCount": 7
   },
   "nativeExitCode": 0,
-  "capturedDate": "2026-10-07"
+  "uiSourceVersion": "1.2.1",
+  "nativeHostVersion": "1.2.0"
 }

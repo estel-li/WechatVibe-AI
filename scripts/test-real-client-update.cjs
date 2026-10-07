@@ -77,7 +77,7 @@ async function main() {
   };
   // GitHub metadata alone must never make a Release trustworthy.
   assert.equal((await checkForUpdates("1.0.1", { fetchImpl: successfulFetch })).status, "invalid-release");
-  assert.equal(requests[0].url, "https://api.github.com/repos/estel-li/WechatVibe-tauri2/releases/latest");
+  assert.equal(requests[0].url, "https://api.github.com/repos/estel-li/WechatVibe-AI/releases/latest");
   assert.equal(requests[0].options.redirect, "error");
   assert.equal((await checkForUpdates("1.0.1", { fetchImpl: fetched("{}", { status: 404 }) })).status, "no-release");
   assert.equal((await checkForUpdates("1.0.1", { fetchImpl: fetched("", { status: 403, headers: { "x-ratelimit-remaining": "0" } }) })).status, "rate-limited");

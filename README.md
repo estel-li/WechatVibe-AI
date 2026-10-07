@@ -9,7 +9,7 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 
 [![Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6)](#运行要求)
 [![Tauri 2](https://img.shields.io/badge/desktop-Tauri%202-24C8D8)](https://tauri.app/)
-[![最新版本](https://img.shields.io/github/v/release/estel-li/WechatVibe-tauri2?label=release)](https://github.com/estel-li/WechatVibe-tauri2/releases/latest)
+[![最新版本](https://img.shields.io/github/v/release/estel-li/WechatVibe-AI?label=release)](https://github.com/estel-li/WechatVibe-AI/releases/latest)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 [功能介绍](#功能介绍) · [下载安装](#下载安装) · [首次使用](#首次使用) · [常见问题](#常见问题) · [开发与构建](#开发与构建) · [数据与隐私](#数据与隐私) · [免责声明](#免责声明) · [交流与反馈](#交流与反馈) · [来源与致谢](#来源与致谢)
@@ -21,7 +21,7 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 - **读懂一段对话**：总结当前会话的全部历史或指定时间内的消息，整理主要话题、约定与待办；长历史分段处理，覆盖尚未滚动加载的记录。
 - **想好如何回复**：结合上下文和你的表达要求，按普通朋友、亲密朋友、同事、亲戚、长辈或自定义关系生成回复。提示词可编辑，不满意可重新生成。
 - **回顾沟通变化**：查看情绪和意图标签、好感度、互动风格、人物与群聊画像，以及基于聊天的 MBTI 倾向。
-- **选择自己的模型**：消息分析可使用本地 Laya 或 API；对话助手独立接入 DeepSeek 或自定义服务。支持 Chat Completions、Responses、Anthropic、Gemini 和 Ollama 兼容接口。
+- **选择自己的模型**：消息分析可使用本地 Laya 或 API；AI 模型统一在通用设置接入 DeepSeek、MiniMax、智谱、Kimi、硅基流动或自定义服务。支持 Chat Completions、Responses、Anthropic、Gemini 和 Ollama 兼容接口。
 - **保留操作决定权**：总结与回复由你主动发起，结果可复制或放入草稿；应用不会自动发送微信消息。
 
 ![消息情绪与意图识别、聊天工具栏和回复草稿](docs/assets/readme/chat-demo.png)
@@ -34,16 +34,17 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 
 聊天和人物画像页面顶部提供“分析模型”选择栏，可切换 **本地 Laya** 和 **已配置的大语言模型**，意图识别、情绪标签与人物画像共用当前选择。在“大模型设置”配置 API、获取模型并保存后，同一服务中已获取的模型也可从这里选择；尚未确认上下文容量的模型会先打开配置页。
 
-切换模型会停止旧来源的界面任务，并读取该模型自己的分析缓存。AI 总结与“帮我回复”继续使用独立助手配置。从1.2.0起，安装版和绿色版均提供此入口。使用与验证见 [分析模型快捷选择](docs/analysis-models.md)。
+切换模型会停止旧来源的界面任务，并读取该模型自己的分析缓存。AI 总结与“帮我回复”共用通用设置保存的 API 模型；切回本地 Laya 时仍可使用这套 API 生成。从1.2.0起，安装版和绿色版均提供此入口。使用与验证见 [分析模型快捷选择](docs/analysis-models.md)。
 
 ### AI 聊天总结与帮我回复
 
 从 1.1.0 起，安装版和绿色版均提供 AI 对话助手。
 
-- **入口**：当前聊天下方，“意图识别”“人物画像”右边新增“AI 总结”和“帮我回复”。无需选择会话时，也能在「设置 → 通用设置 → AI 对话助手」先配置模型。
-- **独立模型设置**：提供 DeepSeek 官方预设以及自定义 API，支持获取模型列表、手动输入模型、测试连接和设置上下文容量。助手配置独立于消息意图和画像分析；不会因为启用助手而自动将其他聊天送到 API。
+- **入口**：当前聊天下方，“意图识别”“人物画像”右边新增“AI 总结”和“帮我回复”。无需选择会话时，也能在「设置 → 通用设置」先统一配置 AI 模型。
+- **统一模型设置**：提供 DeepSeek、MiniMax、智谱 Zhipu、Kimi、硅基流动和自定义 API 预设。获取模型或手动输入 ID，测试后保存，意图、画像、总结和回复共用一套 API 配置。新配置默认 1M 上下文，可按模型实际容量调整。
+- **7 条总结预设**：全面总结、决定与分歧、时间线回顾、情绪与沟通、待办与行动、群聊要点、简明速览。总结页可直接选择、编辑和保存提示词。
 - **全量或时间范围总结**：总结当前会话的完整历史，或指定起止时间内的消息，覆盖界面尚未加载的记录。长对话分段整理后合并，并显示进度；图片、语音等只使用已有类型描述，不猜测媒体内容。
-- **语境回复**：使用最近对话，或用户选择的全部/时间范围作为上下文。支持普通朋友、亲密朋友、同事、亲戚、长辈和自定义关系；各类基础提示词可编辑并保存，还能补充本次想表达的意思。
+- **6 条回复预设**：使用最近对话，或用户选择的全部/时间范围作为上下文。支持普通朋友、亲密朋友、同事、亲戚、长辈和自定义关系；各类基础提示词可编辑并保存，还能补充本次想表达的意思。
 - **重新生成与草稿**：不满意可重新生成，也可调整关系、提示词和要求后重试。结果可复制或放入原有草稿框，由用户决定如何使用；应用仍不会自动发送微信消息。
 - **取消与隔离**：支持主动取消，关闭助手或切换会话/账号后取消旧任务并清除过期输出。API Key 使用 Windows DPAPI 加密保存，不回传明文、不放入浏览器 localStorage；总结与回复结果只在当前进程内存中保存。
 
@@ -60,11 +61,11 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 ![AI 智能回复：普通朋友关系、可编辑提示词和回复草稿](docs/assets/readme/ai-reply-demo.png)
 
 <details>
-<summary>截图：指定时间总结与独立助手模型设置</summary>
+<summary>截图：指定时间总结与提示词预设</summary>
 
 ![指定时间内的聊天 AI 总结](docs/assets/readme/ai-time-summary-demo.png)
 
-![AI 对话助手：DeepSeek、1M 上下文和自定义提示词](docs/assets/readme/ai-assistant-settings-demo.png)
+![AI 对话助手：总结预设与可编辑提示词](docs/assets/readme/ai-assistant-settings-demo.png)
 
 </details>
 
@@ -137,12 +138,12 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 
 ## 下载安装
 
-从 [Releases](https://github.com/estel-li/WechatVibe-tauri2/releases/latest) 下载 Windows x64 安装版或绿色版。当前公开发行版为 **1.2.0**，提供大模型分析快捷选择并采用新的绿色双对话气泡 logo。完整变化见 [1.2.0 发布说明](docs/releases/1.2.0.md)。
+从 [Releases](https://github.com/estel-li/WechatVibe-AI/releases/latest) 下载 Windows x64 安装版或绿色版。当前公开发行版为 **1.2.0**，提供大模型分析快捷选择并采用新的绿色双对话气泡 logo。完整变化见 [1.2.0 发布说明](docs/releases/1.2.0.md)。
 
 | 发行文件 | 使用方式 |
 | --- | --- |
-| [1.2.0 安装版](https://github.com/estel-li/WechatVibe-tauri2/releases/download/v1.2.0/WechatVibe-tauri2-1.2.0-windows-x64-setup.exe) | 运行安装向导，安装到当前用户目录 |
-| [1.2.0 绿色版](https://github.com/estel-li/WechatVibe-tauri2/releases/download/v1.2.0/WechatVibe-tauri2-1.2.0-windows-x64.zip) | 解压后启动，无需安装应用 |
+| [1.2.1 安装版](https://github.com/estel-li/WechatVibe-AI/releases/download/v1.2.1/WechatVibe-tauri2-1.2.1-windows-x64-setup.exe) | 运行安装向导，安装到当前用户目录 |
+| [1.2.1 绿色版](https://github.com/estel-li/WechatVibe-AI/releases/download/v1.2.1/WechatVibe-tauri2-1.2.1-windows-x64.zip) | 解压后启动，无需安装应用 |
 
 两个标准包都内置 Node/Python 运行环境，不含 Laya 模型权重；本地模式首次使用需在设置中下载模型。源码运行和自行打包见 [开发与构建](#开发与构建)。
 
@@ -193,7 +194,7 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 
 ## 软件更新
 
-应用保留「设置 → 关于 → 当前版本」的检查、下载、校验、安装与回退流程。**1.0.0 起只检查 `estel-li/WechatVibe-tauri2` Releases。** 更新器使用本版本独立的 Ed25519 公钥，验证对应产品标识、签名及文件布局的 Tauri 2 资产。发布页附带 `update-manifest-tauri2.json`、签名与校验文件供更新器使用；手动安装仅需下载 EXE 或 ZIP。
+应用保留「设置 → 关于 → 当前版本」的检查、下载、校验、安装与回退流程。**1.2.1 起检查 `estel-li/WechatVibe-AI` Releases。仓库改名后，1.2.0 及更早版本的更新器无法跟随旧 API 地址的重定向，请从本页手动下载 1.2.1 升级；之后恢复软件内更新。** 更新器使用本版本独立的 Ed25519 公钥，验证对应产品标识、签名及文件布局的 Tauri 2 资产。发布页附带 `update-manifest-tauri2.json`、签名与校验文件供更新器使用；手动安装仅需下载 EXE 或 ZIP。
 
 手动升级时，完全退出应用后使用同架构完整运行包，并保留该安装的 `client/.local` 和 `client/.models`。架构与维护说明见 [MIGRATION.md](MIGRATION.md) 和 [review 记录](docs/review-and-performance.md)，版本历史见 [CHANGELOG.md](CHANGELOG.md)。
 
@@ -205,7 +206,7 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 - 确认登录 Windows 微信 4.x；旧版 3.x 不受支持。
 - 数据在自定义位置时，在「设置 → 通用设置 → 聊天记录路径」选择 `xwechat_files` 或账号目录。
 - 选择目录后仍需微信登录并通过账号校验。
-- 若仍未就绪，运行启动诊断工具，再到 [本版本 Issues](https://github.com/estel-li/WechatVibe-tauri2/issues) 反馈。
+- 若仍未就绪，运行启动诊断工具，再到 [本版本 Issues](https://github.com/estel-li/WechatVibe-AI/issues) 反馈。
 
 </details>
 
@@ -241,8 +242,8 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 安装 Rust、Visual Studio Build Tools 的 C++ 桌面开发组件与 Windows SDK 后，在 PowerShell 执行：
 
 ```powershell
-git clone https://github.com/estel-li/WechatVibe-tauri2.git
-cd WechatVibe-tauri2
+git clone https://github.com/estel-li/WechatVibe-AI.git
+cd WechatVibe-AI
 py -3.14 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --no-deps -r python-requirements.lock.txt
 npm ci
@@ -307,10 +308,10 @@ npm test
 发行更新 ZIP 使用单独的 Tauri 产品标识与根目录，避免接收 Electron 架构更新包：
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/build-windows-release.py --input dist/WechatVibe-tauri2 --version 1.2.0 --output-dir dist/releases
+.\.venv\Scripts\python.exe scripts/build-windows-release.py --input dist/WechatVibe-tauri2 --version 1.2.1 --output-dir dist/releases
 ```
 
-输出 `WechatVibe-tauri2-1.2.0-windows-x64.zip`，内部根目录为 `tauri2-portable/`。`--with-model` 生成单独的 `-windows-x64-full.zip`。签名通过 `scripts/build-update-manifest.cjs` 管理，使用 `WECHATVIBE_UPDATE_SIGNING_KEY_FILE` 指定与应用公钥对应的 Ed25519 私钥；私钥仅在维护者本地保存，不进入 Git、stage、安装包或发布资产。
+输出 `WechatVibe-tauri2-1.2.1-windows-x64.zip`，内部根目录为 `tauri2-portable/`。`--with-model` 生成单独的 `-windows-x64-full.zip`。签名通过 `scripts/build-update-manifest.cjs` 管理，使用 `WECHATVIBE_UPDATE_SIGNING_KEY_FILE` 指定与应用公钥对应的 Ed25519 私钥；私钥仅在维护者本地保存，不进入 Git、stage、安装包或发布资产。
 
 迁移边界与验证记录见 [MIGRATION.md](MIGRATION.md)，启动诊断见 [docs/startup-diagnostics.md](docs/startup-diagnostics.md)，第三方许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 ### 业务结构与词库
@@ -359,8 +360,8 @@ npm test
 ## 交流与反馈
 
 - 本版本维护者：[estel-li](https://github.com/estel-li)
-- 本版本源码：[estel-li/WechatVibe-tauri2](https://github.com/estel-li/WechatVibe-tauri2)
-- 本版本问题反馈：[GitHub Issues](https://github.com/estel-li/WechatVibe-tauri2/issues)
+- 本版本源码：[estel-li/WechatVibe-AI](https://github.com/estel-li/WechatVibe-AI)
+- 本版本问题反馈：[GitHub Issues](https://github.com/estel-li/WechatVibe-AI/issues)
 
 反馈时请说明 Windows、微信、应用版本、模型模式和复现步骤。截图及日志请先去除私聊内容、个人身份、账号、API Key、数据库密钥等私人信息。
 

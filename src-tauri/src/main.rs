@@ -42,8 +42,8 @@ const DOC_URLS: &[&str] = &[
     "https://github.com/tswawa/WechatVibe",
     "https://github.com/tswawa/WechatVibe/releases",
     "https://github.com/estel-li",
-    "https://github.com/estel-li/WechatVibe-tauri2",
-    "https://github.com/estel-li/WechatVibe-tauri2/releases",
+    "https://github.com/estel-li/WechatVibe-AI",
+    "https://github.com/estel-li/WechatVibe-AI/releases",
     "https://github.com/fanyuantaier/wechatauto-replica",
 ];
 

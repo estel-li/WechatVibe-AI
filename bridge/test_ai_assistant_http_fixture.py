@@ -70,7 +70,7 @@ class AssistantHttpFixtureTests(unittest.TestCase):
         result = self.poll(self.job())
         self.assertEqual(result["status"], "completed", result)
         self.assertEqual(result["messageCount"], 1295)
-        calls = self.request("/__fixture__/stats")["requests"]
+        calls = [call for call in self.request("/__fixture__/stats")["requests"] if call["phase"] != "probe"]
         self.assertTrue(calls[0]["truncated"])
         self.assertFalse(calls[1]["truncated"])
         self.assertEqual(calls[0]["sourceIds"], calls[1]["sourceIds"])
@@ -88,7 +88,7 @@ class AssistantHttpFixtureTests(unittest.TestCase):
         self.assertEqual(result["status"], "failed", result)
         self.assertEqual(result["error"]["code"], "output-truncated")
         self.assertEqual(result["text"], "")
-        calls = self.request("/__fixture__/stats")["requests"]
+        calls = [call for call in self.request("/__fixture__/stats")["requests"] if call["phase"] != "probe"]
         self.assertEqual(len(calls), 2)
         self.assertTrue(all(call["truncated"] for call in calls))
 

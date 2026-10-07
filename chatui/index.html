@@ -431,11 +431,7 @@
               <option value="1.5">150% (特大)</option>
             </select>
           </div>
-          <div class="settings-row">
-            <span>AI 对话助手</span>
-            <button type="button" class="settings-action-btn" id="btnOpenAssistantSettings">配置模型与提示词</button>
-          </div>
-          <p class="assistant-settings-note">DeepSeek / 自定义 API，独立用于手动总结对话和生成回复草稿。</p>
+          <p class="assistant-settings-note">AI 模型统一在此配置，供意图识别、人物画像、对话总结和回复草稿共用。切回本地 Laya 后，总结与回复仍使用已保存的 API 模型。</p>
           <div class="settings-row">
             <label for="selectModelSource">模型来源</label>
             <div class="model-source-choice">
@@ -492,11 +488,22 @@
           </section>
           <section class="model-source-panel api-model-settings" id="apiModelSettings" hidden>
             <div class="settings-row">
+              <label for="selectApiPreset">服务预设</label>
+              <select id="selectApiPreset">
+                <option value="deepseek">DeepSeek</option>
+                <option value="minimax">MiniMax</option>
+                <option value="zhipu">智谱 Zhipu</option>
+                <option value="kimi">Kimi</option>
+                <option value="siliconflow">硅基流动</option>
+                <option value="custom">自定义 API</option>
+              </select>
+            </div>
+            <div class="settings-row">
               <label for="selectApiProtocol">接口协议</label>
               <select id="selectApiProtocol">
                 <option value="anthropic">Anthropic 兼容</option>
                 <option value="responses">Responses 兼容</option>
-                <option value="chat_completions">Completions（旧版）</option>
+                <option value="chat_completions">OpenAI Chat Completions 兼容</option>
                 <option value="gemini">Gemini 兼容</option>
                 <option value="ollama">Ollama 兼容</option>
               </select>
@@ -525,8 +532,9 @@
             </div>
             <div class="model-source-field">
               <label for="inputApiContextTokens">上下文大小（tokens）</label>
-              <input id="inputApiContextTokens" type="number" min="4096" max="1000000" step="1" placeholder="接口未提供时填写，例如 128000" inputmode="numeric">
+              <input id="inputApiContextTokens" type="number" min="4096" max="1000000" step="1" value="1000000" placeholder="默认 1,000,000（1M）" inputmode="numeric">
             </div>
+            <p class="assistant-settings-note">默认 1M 上下文；若所选模型支持的容量更小，可按实际容量调整。API Key 仅加密保存在本机。</p>
             <div class="model-source-actions">
               <button type="button" class="settings-action-btn" id="btnTestApiModel">测试连接</button>
               <button type="button" class="settings-action-btn model-source-primary" id="btnActivateApi">保存并启用</button>
@@ -638,7 +646,7 @@
           </div>
           <div class="about-row">
             <span class="about-label">项目主页</span>
-            <a class="about-val about-link" id="aboutRepository" href="https://github.com/estel-li/WechatVibe-tauri2" target="_blank" rel="noopener noreferrer">知意 AI / WechatVibe AI</a>
+            <a class="about-val about-link" id="aboutRepository" href="https://github.com/estel-li/WechatVibe-AI" target="_blank" rel="noopener noreferrer">知意 AI / WechatVibe AI</a>
           </div>
         </div>
         <p class="about-privacy">本地模型在本机分析；API 模式会将分析所需的聊天片段发送到你配置的服务。</p>
@@ -674,7 +682,7 @@
       </div>
     </div>
     <div class="update-modal-actions">
-      <a id="updateReleaseLink" href="https://github.com/estel-li/WechatVibe-tauri2/releases" target="_blank" rel="noopener noreferrer">知意 AI 发布页</a>
+      <a id="updateReleaseLink" href="https://github.com/estel-li/WechatVibe-AI/releases" target="_blank" rel="noopener noreferrer">知意 AI 发布页</a>
       <button type="button" class="update-check-button" id="btnCheckUpdates">检查更新</button>
       <button type="button" class="update-primary-button" id="btnBeginUpdate" hidden>下载并安装</button>
     </div>
@@ -689,11 +697,11 @@
     <nav class="assistant-tabs" role="tablist" aria-label="AI 对话助手功能">
       <button type="button" id="assistantTabSummary" role="tab" aria-selected="true" aria-controls="assistantSummaryPanel" data-assistant-tab="summary">对话总结</button>
       <button type="button" id="assistantTabReply" role="tab" aria-selected="false" aria-controls="assistantReplyPanel" data-assistant-tab="reply" tabindex="-1">帮我回复</button>
-      <button type="button" id="assistantTabSettings" role="tab" aria-selected="false" aria-controls="assistantSettingsPanel" data-assistant-tab="settings" tabindex="-1">模型与提示词</button>
     </nav>
     <div class="assistant-body">
       <p class="assistant-notice">仅在你点击生成时，将所选对话发送到配置的 API。回复先放入草稿，由你检查后复制。</p>
       <p class="assistant-model-info" id="assistantModelInfo">正在读取模型配置…</p>
+      <button type="button" id="btnAssistantGeneralSettings">前往通用设置配置 AI 模型</button>
       <section id="assistantSummaryPanel" role="tabpanel" aria-labelledby="assistantTabSummary">
         <div class="assistant-form-row">
           <label>总结范围<select id="assistantSummaryRange"><option value="all">全部对话</option><option value="time">指定时间</option></select></label>
@@ -708,12 +716,15 @@
           <label>开始时间<input type="datetime-local" id="assistantSummaryFrom" step="1" aria-describedby="assistantSummaryRangeHelp"></label>
           <label>结束时间<input type="datetime-local" id="assistantSummaryTo" step="1" aria-describedby="assistantSummaryRangeHelp"></label>
         </div>
+        <label class="assistant-field">总结提示词预设<select id="assistantSummaryPreset"></select></label>
+        <label class="assistant-field">总结提示词 <span>可编辑并保存</span><textarea id="assistantSummaryPrompt" rows="4" maxlength="32000"></textarea></label>
+        <div class="assistant-prompt-actions"><button type="button" id="btnAssistantSaveSummaryPrompt">保存总结提示词</button><span id="assistantSummaryPromptStatus" role="status"></span></div>
         <label class="assistant-field">本次总结要求 <span>可选</span><textarea id="assistantSummaryInstructions" rows="2" maxlength="8000" placeholder="例如：整理重要决定、待办和双方关注的问题"></textarea></label>
         <button type="button" class="assistant-primary" id="btnAssistantSummary">生成总结</button>
       </section>
       <section id="assistantReplyPanel" role="tabpanel" aria-labelledby="assistantTabReply" hidden>
         <div class="assistant-form-row">
-          <label>对方与我的关系<select id="assistantRelationship"><option value="friend">普通朋友</option><option value="close_friend">亲密朋友</option><option value="colleague">同事</option><option value="relative">亲戚</option><option value="elder">长辈</option><option value="custom">自定义关系</option></select></label>
+          <label>回复提示词预设<select id="assistantRelationship"><option value="friend">普通朋友 · 自然友好</option><option value="close_friend">亲密朋友 · 情绪承接</option><option value="colleague">同事 · 专业清晰</option><option value="relative">亲戚 · 亲切有礼</option><option value="elder">长辈 · 尊重耐心</option><option value="custom">通用回复 · 自定义关系</option></select></label>
           <label>上下文范围<select id="assistantReplyRange"><option value="recent">最近对话</option><option value="all">全部对话</option><option value="time">指定时间</option></select></label>
         </div>
         <div class="assistant-time-shortcuts" role="group" aria-label="回复上下文时间快捷选择">
@@ -725,30 +736,10 @@
         <div id="assistantReplyDates" class="assistant-date-range" hidden>
           <label>开始时间<input type="datetime-local" id="assistantReplyFrom" step="1" aria-describedby="assistantReplyRangeHelp"></label><label>结束时间<input type="datetime-local" id="assistantReplyTo" step="1" aria-describedby="assistantReplyRangeHelp"></label>
         </div>
-        <label class="assistant-field">关系提示词 <span>可修改；在“模型与提示词”中保存</span><textarea id="assistantReplyPrompt" rows="3" maxlength="32000" placeholder="说明你与对方的关系、语气和边界"></textarea></label>
+        <label class="assistant-field">回复提示词 <span>可编辑并保存</span><textarea id="assistantReplyPrompt" rows="4" maxlength="32000" placeholder="说明你与对方的关系、语气和边界"></textarea></label>
+        <div class="assistant-prompt-actions"><button type="button" id="btnAssistantSaveReplyPrompt">保存回复提示词</button><span id="assistantReplyPromptStatus" role="status"></span></div>
         <label class="assistant-field">我想表达什么 <span>可选</span><textarea id="assistantReplyInstructions" rows="2" maxlength="8000" placeholder="例如：礼貌拒绝这次邀请，并说明周末已有安排"></textarea></label>
         <button type="button" class="assistant-primary" id="btnAssistantReply">生成回复草稿</button>
-      </section>
-      <section id="assistantSettingsPanel" role="tabpanel" aria-labelledby="assistantTabSettings" hidden>
-        <p class="assistant-help">助手使用独立配置；保存这里的模型不会开启消息自动分析。API Key 只保存在本机。</p>
-        <div class="assistant-form-row">
-          <label>服务预设<select id="assistantPreset"><option value="deepseek">DeepSeek 官方</option><option value="custom">自定义 API</option></select></label>
-          <label>接口协议<select id="assistantProtocol"><option value="chat_completions">OpenAI Chat Completions 兼容</option><option value="responses">OpenAI Responses</option><option value="anthropic">Anthropic</option><option value="gemini">Gemini</option><option value="ollama">Ollama</option></select></label>
-        </div>
-        <label class="assistant-field">API 地址<input type="url" id="assistantBaseUrl" spellcheck="false" placeholder="https://api.deepseek.com"></label>
-        <label class="assistant-field">API Key<input type="password" id="assistantApiKey" autocomplete="off" spellcheck="false" placeholder="输入 API Key"></label>
-        <label class="assistant-check"><input type="checkbox" id="assistantClearKey">清除已保存的 Key</label>
-        <div class="assistant-form-row">
-          <label class="assistant-model-field">模型<input type="text" id="assistantModel" list="assistantModelOptions" spellcheck="false" placeholder="deepseek-flash"><datalist id="assistantModelOptions"></datalist></label>
-          <button type="button" id="btnAssistantModels">获取模型列表</button>
-        </div>
-        <label class="assistant-field">模型上下文长度（Token）<input type="number" id="assistantContextTokens" min="4096" max="1000000" step="1" value="1000000"></label>
-        <div class="assistant-context-upgrade"><button type="button" id="btnAssistantUpgradeContext" hidden>使用1M上下文</button></div>
-        <p class="assistant-help">按服务实际支持的长度填写。较长对话会分段总结；帮我回复会优先保留最近上下文。</p>
-        <label class="assistant-field">总结基本提示词<textarea id="assistantSummaryPrompt" rows="4" maxlength="32000"></textarea></label>
-        <p class="assistant-help">六种关系的基本提示词可在“帮我回复”页选择并编辑；这里会一起保存。</p>
-        <div class="assistant-config-actions"><button type="button" id="btnAssistantTest">测试连接与模型</button><button type="button" class="assistant-primary" id="btnAssistantSave">保存配置与提示词</button></div>
-        <p id="assistantConfigStatus" class="assistant-config-status" role="status" aria-live="polite"></p>
       </section>
       <section class="assistant-result" id="assistantResultSection" hidden>
         <div class="assistant-result-head"><strong id="assistantResultTitle">生成结果</strong><button type="button" id="btnAssistantCancel" hidden>停止生成</button></div>

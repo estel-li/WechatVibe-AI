@@ -1,6 +1,6 @@
 # Tauri 版代码 review 与优化
 
-日期：2026-10-07。维护者：[estel-li](https://github.com/estel-li)。项目：[WechatVibe-tauri2](https://github.com/estel-li/WechatVibe-tauri2)。首次验证时曾使用本机 Git 署名“老李”；该历史署名仍可见于早期截图和验证 JSON，当前关于页已按维护者要求更新。
+日期：2026-10-07。维护者：[estel-li](https://github.com/estel-li)。项目：[WechatVibe-tauri2](https://github.com/estel-li/WechatVibe-AI)。首次验证时曾使用本机 Git 署名“老李”；该历史署名仍可见于早期截图和验证 JSON，当前关于页已按维护者要求更新。
 
 本次检查覆盖 Rust/Node 桌面生命周期与 IPC、前端消息及标签刷新、会话和模型来源隔离、剪贴板、设置与更新弹窗，以及源码打包清单。微信读取、模型提示词、画像统计和现有业务接口保持原有语义。
 

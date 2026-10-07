@@ -1,10 +1,10 @@
 [package]
 name = "wechatvibe-tauri2"
-version = "1.2.0"
+version = "1.2.1"
 description = "WechatVibe Tauri 2 desktop host"
 authors = ["estel-li"]
-repository = "https://github.com/estel-li/WechatVibe-tauri2"
-homepage = "https://github.com/estel-li/WechatVibe-tauri2"
+repository = "https://github.com/estel-li/WechatVibe-AI"
+homepage = "https://github.com/estel-li/WechatVibe-AI"
 edition = "2021"
 rust-version = "1.90"
 license = "Apache-2.0"

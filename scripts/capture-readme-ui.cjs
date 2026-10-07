@@ -191,20 +191,15 @@ let failureDiagnostics;
   await page.locator("#assistantResultSection").scrollIntoViewIfNeeded();
   await page.locator("#assistantResultActions").scrollIntoViewIfNeeded();
   await capture("ai-reply-demo", "Contextual reply draft with relationship, instructions, regenerate/copy/insert controls and no send action");
-  await page.locator("#assistantTabSettings").click();
-  await page.locator("#btnAssistantModels").click();
-  await page.waitForFunction(() => document.getElementById("assistantConfigStatus").textContent.startsWith("已获取"));
-  assert.equal(await page.locator("#assistantApiKey").inputValue(), "");
-  assert.equal(await page.locator("#assistantContextTokens").inputValue(), "1000000");
+  await page.locator("#assistantTabSummary").click();
+  await page.locator("#assistantSummaryPreset").selectOption("tasks");
+  assert.equal(await page.locator("#assistantSummaryPreset option").count(), 7);
+  assert.equal(await page.locator("#assistantRelationship option").count(), 6);
   await setScroll(".assistant-body");
-  await page.locator("#btnAssistantSave").evaluate(button => {
-    const body = button.closest(".assistant-body");
-    const overflow = button.getBoundingClientRect().bottom - body.getBoundingClientRect().bottom + 12;
-    if (overflow > 0) body.scrollTop += overflow;
-  });
-  await capture("ai-assistant-settings-demo", "Independent manual-assistant model settings with an empty secret field and the 1M profile");
+  await page.locator("#btnAssistantSaveSummaryPrompt").scrollIntoViewIfNeeded();
+  await capture("ai-assistant-settings-demo", "Actual summary prompt presets and editable prompt; model settings live in general settings");
   await page.locator("#btnCloseAssistant").click();
-  passed("Four additional assistant screenshots show actual complete/time summaries, reply drafts and independent configuration");
+  passed("Four additional assistant screenshots show actual complete/time summaries, reply drafts and separate prompt presets");
 
   const final = await stats();
   assert.equal(final.synthetic, true); assert.equal(final.readmeDemo, true); assert.equal(final.remoteCalls, 0);

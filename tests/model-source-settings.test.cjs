@@ -15,7 +15,7 @@ function section(start, end) {
   return script.slice(first, last);
 }
 const settingsCode = section("async function api(", "function status(") +
-  section("const MODEL_SOURCE_PROTOCOLS", "let managedAccounts = [];") +
+  section("const AI_SERVICE_PRESETS", "let managedAccounts = [];") +
   "globalThis.ui = { showModelSource, loadModelSource, fetchApiModels, testApiModel, " +
   "activateModelSource, clearStoredApiKey, invalidateModelDiscovery, invalidateModelTest, " +
   "syncRuntimeControl, syncSavedApiKeyHint, getSnapshot: () => settingsState.modelSourceSnapshot, " +
@@ -46,6 +46,7 @@ function harness(fetchImpl) {
   byId("settingsModal").querySelector = () => card;
   byId("btnSettings").click = () => byId("settingsModal").classList.add("show");
   const context = vm.createContext({
+    window: {},
     URL,
     AbortController,
     setTimeout,
@@ -345,7 +346,7 @@ it("quick LLM selection uses the chosen model budget and remembers confirmed mod
   assert.equal(byId('selectAnalysisModel').title,'model-c');
 });
 
-it("a discovered model without a known context asks for its budget instead of reusing another model capacity", async () => {
+it("a discovered model without a known context starts with the requested 1M default for confirmation", async () => {
   const calls=[];
   const {ui,byId}=harness(async(url)=>{calls.push(url);return response({supported:true,models:[{id:'unknown-budget'}]});});
   ui.showModelSource({...localState,api:apiState.api});
@@ -354,7 +355,7 @@ it("a discovered model without a known context asks for its budget instead of re
   await ui.chooseAnalysisModel(JSON.stringify(['api','unknown-budget']));
   assert.deepEqual(calls,['/api/model-source/list']);
   assert.equal(byId('inputApiModelId').value,'unknown-budget');
-  assert.equal(byId('inputApiContextTokens').value,'');
+  assert.equal(byId('inputApiContextTokens').value,1000000);
   assert.equal(ui.getSnapshot().mode,'local');
 });
 

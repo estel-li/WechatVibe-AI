@@ -178,7 +178,7 @@ test("only trusted user clicks on approved upstream and maintainer links open ex
       preventDefault() { this.prevented = true; }, stopImmediatePropagation() { this.stopped = true; } };
   };
   for (const href of ["https://example.com/", "https://github.com/tswawa/WechatVibe?download=1",
-    "https://github.com/estel-li/WechatVibe-tauri2?download=1", "https://github.com/estel-li/other-repo",
+    "https://github.com/estel-li/WechatVibe-AI?download=1", "https://github.com/estel-li/other-repo",
     "https://user:pass@github.com/tswawa", "javascript:alert(1)", "not a URL"]) {
     const event = clicked(href);
     h.document.listeners.get("click")(event);
@@ -191,7 +191,7 @@ test("only trusted user clicks on approved upstream and maintainer links open ex
   assert.equal(ordinaryCalls(h.calls).length, 0);
   h.navigator.userActivation.isActive = true;
   const targets = ["https://github.com/tswawa", "https://github.com/estel-li",
-    "https://github.com/estel-li/WechatVibe-tauri2", "https://github.com/estel-li/WechatVibe-tauri2/releases"];
+    "https://github.com/estel-li/WechatVibe-AI", "https://github.com/estel-li/WechatVibe-AI/releases"];
   for (const target of targets) {
     const allowed = clicked(target);
     h.document.listeners.get("click")(allowed);

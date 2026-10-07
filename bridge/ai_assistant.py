@@ -1,4 +1,4 @@
-"""Explicit, account-scoped chat assistance with an independent encrypted API profile.
+"""Explicit, account-scoped assistance using the general-settings API profile.
 
 This service never changes the automatic message-analysis source and never starts a
 paid request while reading settings. Results live only in memory for this process.
@@ -89,7 +89,8 @@ class _PreferenceStore:
     @staticmethod
     def validate(value):
         if not isinstance(value, dict) or set(value) != {
-                "preset", "summaryPrompt", "relationshipPrompts", "defaultRelationship"}:
+                "preset", "summaryPrompt", "relationshipPrompts", "defaultRelationship"} | set(
+                    key for key in ("summaryPreset", "summaryPrompts") if key in value):
             raise ValueError("invalid assistant preferences")
         if value["preset"] not in ("deepseek", "custom"):
             raise ValueError("invalid preset")
@@ -101,6 +102,16 @@ class _PreferenceStore:
         _prompt(value["summaryPrompt"], "summaryPrompt")
         for key, text in prompts.items():
             _prompt(text, "relationshipPrompts." + key)
+        if "summaryPreset" in value and value["summaryPreset"] not in (
+                "general", "decisions", "timeline", "emotion", "tasks", "group", "brief"):
+            raise ValueError("invalid summary preset")
+        if "summaryPrompts" in value:
+            summary_prompts = value["summaryPrompts"]
+            if not isinstance(summary_prompts, dict) or set(summary_prompts) - {
+                    "general", "decisions", "timeline", "emotion", "tasks", "group", "brief"}:
+                raise ValueError("invalid summary prompts")
+            for key, text in summary_prompts.items():
+                _prompt(text, "summaryPrompts." + key)
         return copy.deepcopy(value)
 
     def read(self):
@@ -121,7 +132,9 @@ class AssistantService:
     def __init__(self, backend, *, root=ROOT, store=None, analyzer_factory=None):
         self.backend, self.root = backend, Path(root)
         runtime = self.root / ".local" / "real-client-runtime"
-        self.store = store or ModelSourceStore(runtime / "assistant-model-source.json", root=self.root)
+        self.shared_profile = store is None and hasattr(backend, "model_source_store")
+        self.store = store or (backend.model_source_store if self.shared_profile else
+                              ModelSourceStore(runtime / "api-model-source.json", root=self.root))
         self.preferences = _PreferenceStore(runtime / "assistant-preferences.json", self.root)
         self.analyzer_factory = analyzer_factory or (lambda: NodeAnalysis(api_only=True))
         self.lock = threading.RLock()
@@ -138,6 +151,10 @@ class AssistantService:
             result = {**DEFAULT_CONFIG, **(saved or {}), **preferences,
                       "hasKey": bool(saved and saved["hasKey"]), "ready": bool(saved)}
             official = _official_deepseek(result, preferences["preset"])
+            if self.shared_profile:
+                result["preset"] = "deepseek" if (result["baseUrl"] in DEEPSEEK_BASE_URLS
+                    and result["protocol"] == "chat_completions") else "custom"
+                result["contextTokens"] = (saved or {}).get("contextTokens") or 1000000
             # Version 1 did not record whether 65536 was a default or an explicit
             # user choice. Keep every saved numeric value; offer an explicit UI
             # upgrade instead of silently overriding a user's budget. Missing
@@ -150,7 +167,8 @@ class AssistantService:
 
     def save_settings(self, payload):
         allowed = {"protocol", "baseUrl", "model", "contextTokens", "apiKey", "clearKey",
-                   "preset", "summaryPrompt", "relationshipPrompts", "defaultRelationship"}
+                   "preset", "summaryPrompt", "relationshipPrompts", "defaultRelationship",
+                   "summaryPreset", "summaryPrompts"}
         if not isinstance(payload, dict) or not payload.keys() <= allowed:
             raise ValueError("invalid assistant settings")
         if "clearKey" in payload and type(payload["clearKey"]) is not bool:
@@ -161,10 +179,10 @@ class AssistantService:
             current = self.settings()
             merged = {**current, **payload}
             if not current["ready"] and "contextTokens" not in payload:
-                merged["contextTokens"] = (DEEPSEEK_CONTEXT_TOKENS if
-                    _official_deepseek(merged, merged["preset"]) else LEGACY_DEFAULT_CONTEXT_TOKENS)
+                merged["contextTokens"] = DEEPSEEK_CONTEXT_TOKENS
             preferences = _PreferenceStore.validate({key: merged[key] for key in
-                ("preset", "summaryPrompt", "relationshipPrompts", "defaultRelationship")})
+                ("preset", "summaryPrompt", "relationshipPrompts", "defaultRelationship",
+                 "summaryPreset", "summaryPrompts") if key in merged})
             config = connection_values({key: merged[key] for key in
                                         ("protocol", "baseUrl", "model", "contextTokens")}, True)
             if "apiKey" in payload:
@@ -174,17 +192,32 @@ class AssistantService:
             with self.lock:
                 if self.closed:
                     raise AccountUnavailableError()
-            if payload.get("clearKey"):
+            connection_edit = bool(payload.keys() & {
+                "protocol", "baseUrl", "model", "contextTokens", "apiKey", "clearKey"})
+            if self.shared_profile and connection_edit:
+                # Compatibility for older callers, with the same validated source
+                # activation and cancellation path as the single settings form.
+                if payload.get("clearKey"):
+                    self.backend.model_source_clear_key({})
+                else:
+                    self.backend.model_source_activate({"mode": "api", **config})
+            elif not self.shared_profile and payload.get("clearKey"):
                 self.store.clear_key()
                 key = None
-            self.store.save_api(config["protocol"], config["baseUrl"], config["model"], key,
-                                context_tokens=config["contextTokens"])
+            if not self.shared_profile:
+                self.store.save_api(config["protocol"], config["baseUrl"], config["model"], key,
+                                    context_tokens=config["contextTokens"])
             self.preferences.write(preferences)
             result = self.settings()
             with self.lock:
                 self.settings_revision += 1
             self._cancel_all("settings-changed", purge=True)
         return result
+
+    def model_config_changed(self):
+        with self.lock:
+            self.settings_revision += 1
+        self._cancel_all("settings-changed", purge=True)
 
     def _connection(self, payload, require_model):
         if not isinstance(payload, dict):
@@ -297,7 +330,7 @@ class AssistantService:
         with self.settings_lock:
             settings = self.settings()
             if not settings["ready"]:
-                raise AssistantRequestError(409, "assistant-not-configured", "请先保存 AI 助手的模型设置。")
+                raise AssistantRequestError(409, "assistant-not-configured", "请先在通用设置中保存 AI 模型。")
             config = self._connection({}, True)
             # ModelSourceStore represents missing optional values as None;
             # TypeScript ModelConfig uses omitted properties instead of null.

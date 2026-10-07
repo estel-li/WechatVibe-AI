@@ -3644,6 +3644,16 @@ byId("inputDataRoot").addEventListener("input", () => { settingsState.dataRootDr
 byId("inputDataRoot").addEventListener("keydown", event => {
   if (event.key === "Enter") { event.preventDefault(); void changeDataRoot(); }
 });
+const AI_SERVICE_PRESETS = {
+  deepseek: "https://api.deepseek.com", minimax: "https://api.minimax.cn/v1",
+  zhipu: "https://open.bigmodel.cn/api/paas/v4", kimi: "https://api.moonshot.cn/v1",
+  siliconflow: "https://api.siliconflow.cn/v1",
+};
+function syncApiPreset() {
+  const baseUrl = byId("inputApiBaseUrl").value.trim().replace(/\/+$/, "");
+  byId("selectApiPreset").value = byId("selectApiProtocol").value === "chat_completions" ?
+    Object.entries(AI_SERVICE_PRESETS).find(([, url]) => url === baseUrl)?.[0] || "custom" : "custom";
+}
 const MODEL_SOURCE_PROTOCOLS = new Set(["anthropic", "responses", "chat_completions", "gemini", "ollama"]);
 settingsState.modelSourceSnapshot = { mode: "local", api: null, sourceId: "local", status: "idle" };
 settingsState.modelSourceResolved = false;
@@ -3720,12 +3730,12 @@ function openAnalysisModelSettings(model = null) {
     }
     invalidateModelDiscovery();
     byId("inputApiModelId").value = model.id;
-    byId("inputApiContextTokens").value = validAnalysisContext(model.contextTokens) ? model.contextTokens : "";
+    byId("inputApiContextTokens").value = validAnalysisContext(model.contextTokens) ? model.contextTokens : 1000000;
     syncSavedApiKeyHint();
   }
   settingsState.modelSourceDraftDirty = true;
   showModelSourceMode();
-  text("modelSourceStatus", model ? "请确认模型上下文大小后保存并启用" : "配置大语言模型，用于意图识别与人物画像");
+  text("modelSourceStatus", model ? "请确认模型上下文大小后保存并启用" : "统一配置 AI 模型，用于意图识别、人物画像、总结与回复");
   byId("apiModelSettings").scrollIntoView({ block: "nearest" });
   byId(model ? "inputApiContextTokens" : "inputApiBaseUrl").focus();
 }
@@ -3793,7 +3803,9 @@ function applyActiveModelSource(data) {
     settingsState.modelSourceSnapshot.sourceId !== data.sourceId;
   const portraitBudgetChanged = settingsState.modelSourceResolved && !changed && data.mode === "api" &&
     settingsState.modelSourceSnapshot.api?.contextTokens !== data.api?.contextTokens;
+  const apiChanged = JSON.stringify(settingsState.modelSourceSnapshot.api) !== JSON.stringify(data.api);
   settingsState.modelSourceSnapshot = data;
+  if (apiChanged) window.AIAssistant?.modelChanged?.();
   settingsState.modelSourceResolved = true;
   rememberAnalysisModel(data.api);
   syncPortraitMode();
@@ -3854,7 +3866,7 @@ function updateModelSourceControls() {
   byId("localModelActions").hidden = !settingsState.modelSourceResolved || settingsState.modelSourceSnapshot.mode !== "api" ||
     byId("selectModelSource").value !== "local";
   byId("btnActivateLocal").disabled = !settingsState.modelSourceResolved || settingsState.modelSourceLoading || settingsState.modelSourceBusy || settingsState.modelSourceSnapshot.mode === "local";
-  for (const id of ["selectApiProtocol", "inputApiBaseUrl", "inputApiKey", "selectApiModel", "inputApiModelId", "inputApiContextTokens"])
+  for (const id of ["selectApiPreset", "selectApiProtocol", "inputApiBaseUrl", "inputApiKey", "selectApiModel", "inputApiModelId", "inputApiContextTokens"])
     byId(id).disabled = settingsState.modelSourceLoading || settingsState.modelSourceBusy ||
       (id === "selectApiModel" && byId(id).options.length < 2);
   byId("btnFetchApiModels").disabled = !settingsState.modelSourceResolved || settingsState.modelSourceLoading || settingsState.modelSourceBusy || settingsState.modelListBusy;
@@ -3919,11 +3931,12 @@ function showModelSource(data) {
   settingsState.modelSourceDraftDirty = false;
   text("modelSourceActive", data.mode === "api" ? "当前 API" : "当前本地");
   byId("selectModelSource").value = data.mode;
-  byId("selectApiProtocol").value = data.api?.protocol || "responses";
-  byId("inputApiBaseUrl").value = data.api?.baseUrl || "";
+  byId("selectApiProtocol").value = data.api?.protocol || "chat_completions";
+  byId("inputApiBaseUrl").value = data.api?.baseUrl || AI_SERVICE_PRESETS.deepseek;
   byId("inputApiModelId").value = data.api?.model || "";
-  byId("inputApiContextTokens").value = data.api?.contextTokens || "";
+  byId("inputApiContextTokens").value = data.api?.contextTokens || 1000000;
   byId("inputApiKey").value = "";
+  syncApiPreset();
   syncSavedApiKeyHint();
   invalidateModelDiscovery();
   showModelSourceMode();
@@ -3982,7 +3995,7 @@ function apiModelDraft(requireModel, requireContext = false) {
   if (url.username || url.password || url.search || url.hash || /[\s\\]/.test(baseUrl))
     throw new Error("Base URL 不能包含账号、查询参数或空格");
   if (requireModel && !model) throw new Error("请输入模型 ID");
-  const rawContext = byId("inputApiContextTokens").value.trim();
+  const rawContext = String(byId("inputApiContextTokens").value).trim();
   const contextTokens = rawContext ? Number(rawContext) : null;
   if (requireContext && contextTokens === null) throw new Error("请填写模型上下文大小");
   if (contextTokens !== null && (!Number.isSafeInteger(contextTokens) ||
@@ -5066,12 +5079,27 @@ for (const id of ["selectApiProtocol", "inputApiBaseUrl", "inputApiKey"])
   byId(id).addEventListener(id === "selectApiProtocol" ? "change" : "input", () => {
     settingsState.modelSourceDraftDirty = true;
     invalidateModelDiscovery();
+    if (id !== "inputApiKey") syncApiPreset();
     syncSavedApiKeyHint();
   });
+byId("selectApiPreset").addEventListener("change", () => {
+  const preset = byId("selectApiPreset").value;
+  if (AI_SERVICE_PRESETS[preset]) {
+    byId("selectApiProtocol").value = "chat_completions";
+    byId("inputApiBaseUrl").value = AI_SERVICE_PRESETS[preset];
+    byId("inputApiModelId").value = "";
+    byId("inputApiContextTokens").value = 1000000;
+    byId("inputApiKey").value = "";
+  }
+  settingsState.modelSourceDraftDirty = true;
+  invalidateModelDiscovery(); syncSavedApiKeyHint();
+  text("modelSourceStatus", "请填写对应服务的 API Key，获取模型或填写模型 ID 后保存。");
+});
+window.openAIModelSettings = () => openAnalysisModelSettings();
 byId("selectApiModel").addEventListener("change", event => {
   if (event.target.value) {
     byId("inputApiModelId").value = event.target.value;
-    byId("inputApiContextTokens").value = event.target.selectedOptions?.[0]?.dataset.contextTokens || "";
+    byId("inputApiContextTokens").value = event.target.selectedOptions?.[0]?.dataset.contextTokens || 1000000;
   }
   settingsState.modelSourceDraftDirty = true;
   invalidateModelTest();
@@ -5080,7 +5108,7 @@ byId("inputApiModelId").addEventListener("input", () => {
   const select = byId("selectApiModel");
   const model = byId("inputApiModelId").value.trim();
   select.value = Array.from(select.options).some(option => option.value === model) ? model : "";
-  byId("inputApiContextTokens").value = select.selectedOptions?.[0]?.dataset.contextTokens || "";
+  byId("inputApiContextTokens").value = select.selectedOptions?.[0]?.dataset.contextTokens || 1000000;
   settingsState.modelSourceDraftDirty = true;
   invalidateModelTest();
 });
@@ -5096,7 +5124,7 @@ byId("btnActivateApi").addEventListener("click", () => { void activateModelSourc
 byId("selectAnalysisModel").addEventListener("change", event => { void chooseAnalysisModel(event.target.value); });
 byId("btnAnalysisModelSettings").addEventListener("click", () => { openAnalysisModelSettings(); });
 byId("btnClearApiKey").addEventListener("click", () => { void clearStoredApiKey(); });
-const OFFICIAL_RELEASES_URL = "https://github.com/estel-li/WechatVibe-tauri2/releases";
+const OFFICIAL_RELEASES_URL = "https://github.com/estel-li/WechatVibe-AI/releases";
 const UPDATE_BUSY_PHASES = new Set(["downloading", "verifying", "extracting", "installing", "restarting"]);
 const UPDATE_BACKGROUND_CHECK_DELAY_MS = 10_000;
 const UPDATE_BACKGROUND_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;

@@ -66,3 +66,7 @@ body.theme-light .assistant-overlay select, body.theme-light .assistant-overlay 
   .assistant-tabs { gap: 15px; padding-inline: 15px; }
   .assistant-body { padding: 12px 15px 16px; }
 }
+
+.assistant-prompt-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: -3px 0 14px; }
+.assistant-prompt-actions span { color: var(--text-secondary); font-size: 12px; }
+#btnAssistantGeneralSettings { margin: -3px 0 16px; font-size: 12px; }
