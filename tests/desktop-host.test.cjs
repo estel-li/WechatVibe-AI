@@ -169,7 +169,7 @@ test("normal launches do not submit update-readiness handshakes", async () => {
   assert.equal(ordinaryCalls(h.calls).length, 0);
 });
 
-test("only trusted user clicks on the original documentation allowlist open externally", async () => {
+test("only trusted user clicks on approved upstream and maintainer links open externally", async () => {
   const h = harness();
   const clicked = href => {
     const anchor = new Element();
@@ -178,6 +178,7 @@ test("only trusted user clicks on the original documentation allowlist open exte
       preventDefault() { this.prevented = true; }, stopImmediatePropagation() { this.stopped = true; } };
   };
   for (const href of ["https://example.com/", "https://github.com/tswawa/WechatVibe?download=1",
+    "https://github.com/estel-li/WechatVibe-tauri2?download=1", "https://github.com/estel-li/other-repo",
     "https://user:pass@github.com/tswawa", "javascript:alert(1)", "not a URL"]) {
     const event = clicked(href);
     h.document.listeners.get("click")(event);
@@ -189,12 +190,16 @@ test("only trusted user clicks on the original documentation allowlist open exte
   h.document.listeners.get("click")(clicked("https://github.com/tswawa"));
   assert.equal(ordinaryCalls(h.calls).length, 0);
   h.navigator.userActivation.isActive = true;
-  const allowed = clicked("https://github.com/tswawa");
-  h.document.listeners.get("click")(allowed);
-  assert.equal(allowed.prevented, true);
-  assert.equal(allowed.stopped, true);
-  assert.deepEqual(ordinaryCalls(h.calls), [{ command: "desktop_open_doc", args: {
-    target: "https://github.com/tswawa", trusted: true, active: true } }]);
+  const targets = ["https://github.com/tswawa", "https://github.com/estel-li",
+    "https://github.com/estel-li/WechatVibe-tauri2"];
+  for (const target of targets) {
+    const allowed = clicked(target);
+    h.document.listeners.get("click")(allowed);
+    assert.equal(allowed.prevented, true);
+    assert.equal(allowed.stopped, true);
+  }
+  assert.deepEqual(ordinaryCalls(h.calls), targets.map(target => ({ command: "desktop_open_doc", args: {
+    target, trusted: true, active: true } })));
 });
 
 test("titlebar controls route trusted clicks and mirror maximize/restore state", async () => {

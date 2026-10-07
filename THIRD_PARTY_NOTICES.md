@@ -2,6 +2,10 @@
 
 本项目本体采用 [Apache-2.0](LICENSE)。WechatVibe 是独立项目，与微信、腾讯、Laya 或以下上游项目不存在官方隶属或背书关系。本文件说明这份源码和构建后的便携目录直接使用的组件；传递依赖仍以各自附带的许可证为准。
 
+## WechatVibe 上游项目
+
+本版本由 [estel-li](https://github.com/estel-li) 维护，基于 [tswawa/WechatVibe](https://github.com/tswawa/WechatVibe) 的 Electron 版本移植为 Tauri 2，继承其微信只读读取、分析流程与页面功能。本版本的 README 功能介绍、演示图片与使用说明参考并适配上游 README；上游采用 Apache-2.0，保留 [LICENSE](LICENSE)、原有第三方声明以及源码中的来源注释。本版本为独立维护的衍生项目，未代表上游作者提供支持或承诺。
+
 ## 内嵌 Laya 源码
 
 `analysis/laya/` 中的 `types.ts`、`pyjson.ts`、`tokenizer.ts`、`questions.ts`、`prompt.ts`、`calibration.ts` 和 `agent.ts` 来自 [mizchi/laya-mlx](https://github.com/mizchi/laya-mlx) 的 `web/packages/laya-web/src`，提交 `dc3aa6b150cb861d0788fbd421cfd1303de4ed57`。上游采用 Apache-2.0；完整条款和上游声明保留在 [analysis/laya/LICENSE](analysis/laya/LICENSE) 与 [analysis/laya/NOTICE](analysis/laya/NOTICE)。这些文件的相对 import 扩展名和来源头注释经过适配；目录中其余 TypeScript 文件为本项目实现。

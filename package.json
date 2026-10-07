@@ -46,6 +46,15 @@
     "typescript": "7.0.2"
   },
   "author": {
-    "name": "老李"
+    "name": "estel-li",
+    "url": "https://github.com/estel-li"
+  },
+  "homepage": "https://github.com/estel-li/WechatVibe-tauri2#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/estel-li/WechatVibe-tauri2.git"
+  },
+  "bugs": {
+    "url": "https://github.com/estel-li/WechatVibe-tauri2/issues"
   }
 }

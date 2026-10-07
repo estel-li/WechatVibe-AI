@@ -2,7 +2,9 @@
 name = "wechatvibe-tauri2"
 version = "1.2.4"
 description = "WechatVibe Tauri 2 desktop host"
-authors = ["老李"]
+authors = ["estel-li"]
+repository = "https://github.com/estel-li/WechatVibe-tauri2"
+homepage = "https://github.com/estel-li/WechatVibe-tauri2"
 edition = "2021"
 rust-version = "1.90"
 license = "Apache-2.0"
