@@ -12,7 +12,7 @@ const DOMAIN_FIELDS = {
   chat: ["sessions", "selectedConversations", "selectionLoadedAccount", "conversationSelectionBusy",
     "sessionCache", "historyState", "historyRequest", "historyController", "historySearchRequest",
     "historySearchController", "historySearchPending", "historySearchPage", "historySearchPageStarts",
-    "historySearchQuery", "self", "sessionSignature", "sessionRequest", "sessionLoading",
+    "historySearchQuery", "historySearchCache", "historySearchRetryPage", "sessionFilter", "self", "sessionSignature", "sessionRequest", "sessionLoading",
     "sessionRefreshQueued", "windowRequestSerial", "preloadDone", "preloadTotal", "currentAccount",
     "currentUser", "currentHasMoreBefore", "messageSourceReady", "view", "generation", "controller",
     "messages", "messagePending", "messageRequest", "messageRefreshQueued", "emptyMessagePolls",

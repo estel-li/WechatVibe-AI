@@ -51,6 +51,8 @@ def _map_kind(kind: str) -> str:
 def _int_param(value: object, default: int, low: int, high: int, name: str) -> int:
     if value is None:
         return default
+    if type(value) not in (int, str) or re.fullmatch(r"[0-9]{1,19}", str(value)) is None:
+        raise errors.ProtocolError(errors.BAD_REQUEST, f"{name} must be an integer")
     try:
         number = int(value)  # type: ignore[arg-type]
     except (TypeError, ValueError) as exc:
@@ -719,11 +721,14 @@ class NativeService:
 
     def window_method(self, params: dict | None = None) -> dict:
         params = params or {}
+        capture = params.get("capture", False)
+        if type(capture) is not bool:
+            raise errors.ProtocolError(errors.BAD_REQUEST, "capture must be a boolean")
         pids = {process.pid for process in self._processes} if self._processes else {
             process.pid for process in discovery.find_weixin_processes()
         }
         # Capture is opt-in: geometry-only by default so no screenshot is taken implicitly.
-        return window.current_geometry(pids, capture=bool(params.get("capture")))
+        return window.current_geometry(pids, capture=capture)
 
     def window_uia_method(self, params: dict | None = None) -> dict:
         """Bounded, read-only UI Automation survey of the foreground Weixin main window."""
@@ -735,8 +740,8 @@ class NativeService:
         if not geometry:
             return {"ok": False, "reason": "no-window"}
         primary = next((w for w in geometry if w.foreground), geometry[0])
-        max_nodes = min(int(params.get("maxNodes") or 1000), 1000)
-        max_depth = min(int(params.get("maxDepth") or 12), 12)
+        max_nodes = _int_param(params.get("maxNodes"), 1000, 1, 1000, "maxNodes")
+        max_depth = _int_param(params.get("maxDepth"), 12, 1, 12, "maxDepth")
         from . import window_uia
         return window_uia.probe_window(primary.hwnd, max_nodes=max_nodes, max_depth=max_depth)
 

@@ -28,7 +28,10 @@ const svgIcon = (pathD, className = "", viewBox = "0 0 24 24") => {
 };
 function getWatermarks() {
   const key = `read-watermark:${chatState.currentAccount || "default"}`;
-  try { return JSON.parse(localStorage.getItem(key) || "{}"); }
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "{}");
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  }
   catch { return {}; }
 }
 function markSessionAsRead(username) {
@@ -36,21 +39,24 @@ function markSessionAsRead(username) {
   const key = `read-watermark:${chatState.currentAccount || "default"}`;
   const marks = getWatermarks();
   const session = chatState.sessions.get(username);
-  marks[username] = {
+  const next = {
     time: Number(session?.sortTimestamp || session?.time) || 0,
     unreadCount: Number(session?.unreadCount) || 0,
     preview: String(session?.preview || ""),
     readAt: Date.now()
   };
+  const previous = marks[username];
+  if (previous && previous.time === next.time && previous.unreadCount === next.unreadCount &&
+      previous.preview === next.preview) return;
+  Object.defineProperty(marks, username, { value: next, enumerable: true, configurable: true, writable: true });
   try { localStorage.setItem(key, JSON.stringify(marks)); } catch {}
 }
-function getVisibleUnreadCount(session) {
+function getVisibleUnreadCount(session, marks) {
   if (!session) return 0;
   const serverUnread = Number(session.unreadCount) || 0;
   if (serverUnread <= 0) return 0;
   if (session.username === chatState.currentUser) return 0;
-  const marks = getWatermarks();
-  const wm = marks[session.username];
+  const wm = (marks || getWatermarks())[session.username];
   if (!wm) return serverUnread;
   const curTime = Number(session.sortTimestamp || session.time) || 0;
   const curPreview = String(session.preview || "");
@@ -102,7 +108,10 @@ if (typeof settingsState.settings.intent !== "boolean") settingsState.settings.i
 // Analysing every added chat in the background is opt-in: it can keep the CPU or GPU busy
 // for hours on a large account.
 if (typeof settingsState.settings.backgroundAnalyze !== "boolean") settingsState.settings.backgroundAnalyze = false;
-const save = () => localStorage.setItem("real-ui-settings-1", JSON.stringify(settingsState.settings));
+const save = () => {
+  try { localStorage.setItem("real-ui-settings-1", JSON.stringify(settingsState.settings)); }
+  catch { toast("设置已生效；本机存储不可用，重启后可能还原"); }
+};
 chatState.sessions = new Map();
 chatState.selectedConversations = new Set();
 chatState.selectionLoadedAccount = null;
@@ -491,6 +500,7 @@ function resetAccountView(message = "当前微信账号未就绪", preserveOther
   byId("chatInput").value = "";
   byId("btnSend").classList.remove("ready");
   byId("searchInput").value = "";
+  chatState.sessionFilter = "all";
   clearReplyPrediction();
   setAvatar("selfAvatar", null, [], "我");
   text("chatTitle", "聊天");
@@ -642,14 +652,19 @@ async function requestReplyPrediction() {
 function renderSessions() {
   const container = byId("sessionList");
   const query = byId("searchInput").value.trim().toLowerCase();
+  const marks = getWatermarks();
+  const focusedId = document.activeElement?.closest?.(".session-item")?.dataset.id;
   const existing = new Map([...container.children].filter(node => node.classList.contains("session-item")).map(node => [node.dataset.id, node]));
   let visible = 0;
   for (const session of chatState.sessions.values()) {
     if (!chatState.selectedConversations.has(session.username)) continue;
-    if (!`${session.name || ""} ${session.preview || ""}`.toLowerCase().includes(query)) continue;
+    if (!`${session.name || ""} ${session.username} ${session.preview || ""}`.toLowerCase().includes(query)) continue;
+    const unread = getVisibleUnreadCount(session, marks);
+    if (chatState.sessionFilter === "unread" && !unread) continue;
     let item = existing.get(session.username);
     if (!item) {
-      item = element("div", "session-item");
+      item = element("button", "session-item");
+      item.type = "button";
       item.dataset.id = session.username;
       const avatarWrap = element("div", "session-avatar-wrap");
       const info = element("div", "session-info");
@@ -670,6 +685,9 @@ function renderSessions() {
       });
     }
     item.classList.toggle("active", session.username === chatState.currentUser);
+    item.setAttribute("aria-pressed", String(session.username === chatState.currentUser));
+    item.setAttribute("aria-label", `${session.name || session.username}${unread ? `，${unread} 条未读` : ""}`);
+    item.tabIndex = -1;
     const avatarWrap = item.querySelector(".session-avatar-wrap");
     const avatarSignature = JSON.stringify([session.avatar, session.avatarCandidates, session.name || session.username, session.isGroup]);
     if (item.dataset.avatarSignature !== avatarSignature) {
@@ -677,7 +695,6 @@ function renderSessions() {
       avatarWrap.prepend(avatar(session.avatar, "session-avatar", session.avatarCandidates, session.name || session.username, session.isGroup));
       item.dataset.avatarSignature = avatarSignature;
     }
-    const unread = getVisibleUnreadCount(session);
     const badge = avatarWrap.querySelector(".session-unread-dot");
     if (unread > 0) {
       const label = unread > 99 ? "99+" : unread > 9 ? "9+" : String(unread);
@@ -701,8 +718,27 @@ function renderSessions() {
     visible++;
   }
   while (container.children.length > visible) container.lastElementChild.remove();
+  if (visible) {
+    const rows = [...container.children];
+    (rows.find(node => node.dataset.id === focusedId) ||
+      rows.find(node => node.dataset.id === chatState.currentUser) || rows[0]).tabIndex = 0;
+  }
+  text("sessionResultCount", chatState.sessionFilter === "unread" ? `${visible} 个未读会话` : `${visible} 个会话`);
+  for (const [id, filter] of [["btnSessionsAll", "all"], ["btnSessionsUnread", "unread"]]) {
+    const button = byId(id);
+    button.classList.toggle("active", chatState.sessionFilter === filter);
+    button.setAttribute("aria-pressed", String(chatState.sessionFilter === filter));
+  }
   updateAddConversationButton();
-  if (!visible && chatState.sessions.size && !chatState.selectedConversations.size) {
+  if (!visible && chatState.sessionFilter === "unread" && chatState.selectedConversations.size) {
+    const empty = element("div", "session-empty");
+    empty.appendChild(element("strong", "", query ? "没有匹配的未读会话" : "没有未读会话"));
+    const button = element("button", "settings-action-btn", "查看全部会话");
+    button.type = "button";
+    button.addEventListener("click", () => { chatState.sessionFilter = "all"; renderSessions(); });
+    empty.appendChild(button);
+    container.replaceChildren(empty);
+  } else if (!visible && chatState.sessions.size && !chatState.selectedConversations.size) {
     container.replaceChildren();
     const empty = element("div", "session-empty");
     empty.appendChild(element("strong", "", "还没有添加会话"));
@@ -1587,6 +1623,7 @@ function updateHistoryNavigation() {
   byId("btnHistoryNewer").disabled = !!chatState.historyController || !atBottom;
   byId("btnHistoryNewer").title = atBottom ? "" : "滚动到底部后加载";
   byId("btnReturnLatest").hidden = !state;
+  byId("btnScrollLatest").hidden = !chatState.currentUser || !!state || atBottom || !chatState.messages.length;
   text("historyNavStatus", chatState.historyController ? "读取中…" : state?.error || state?.notice ||
     (!state && firstCursor && chatState.currentHasMoreBefore === false ? "已到本机最早消息" : ""));
 }
@@ -1753,12 +1790,21 @@ function cancelHistorySearch(showCancelled = false) {
   chatState.historySearchPending = false;
   byId("btnRunHistorySearch").disabled = false;
   byId("btnCancelHistorySearch").hidden = true;
-  if (showCancelled) text("historySearchStatus", "已取消");
+  byId("historySearchResults").setAttribute("aria-busy", "false");
+  const page = chatState.historySearchCache.get(chatState.historySearchPage);
+  byId("btnHistoryPrevResults").hidden = !page || chatState.historySearchPage === 0;
+  byId("btnHistoryNextResults").hidden = !page?.hasMore;
+  if (showCancelled) {
+    text("historySearchStatus", "已取消，可以重新搜索");
+    byId("btnRetryHistorySearch").hidden = true;
+  }
 }
 function closeHistorySearch() {
+  const hadFocus = byId("historySearchPanel").contains(document.activeElement);
   cancelHistorySearch();
   byId("historySearchPanel").hidden = true;
   byId("btnChatHistory").setAttribute("aria-expanded", "false");
+  if (hadFocus) byId("btnChatHistory").focus({ preventScroll: true });
 }
 function resetHistorySearch() {
   closeHistorySearch();
@@ -1771,6 +1817,9 @@ function resetHistorySearch() {
   chatState.historySearchPage = 0;
   chatState.historySearchPageStarts = [null];
   chatState.historySearchQuery = { q: "", date: "" };
+  chatState.historySearchCache.clear();
+  chatState.historySearchRetryPage = null;
+  byId("btnRetryHistorySearch").hidden = true;
 }
 function openHistorySearch() {
   if (!chatState.currentUser || !chatState.currentAccount) { toast("请先选择会话"); return; }
@@ -1787,7 +1836,18 @@ function renderHistorySearchResults(items, pageIndex, hasMore) {
     button.type = "button";
     const sender = message.side === "self" ? "我" : message.senderName || message.senderId || chatState.sessions.get(chatState.currentUser)?.name || "对方";
     button.appendChild(element("span", "history-result-meta", `${sender} · ${time(message.time)}`));
-    button.appendChild(element("span", "history-result-text", message.text || "[非文字消息]"));
+    const snippet = element("span", "history-result-text");
+    const value = message.text || "[非文字消息]", query = chatState.historySearchQuery.q;
+    const match = query ? value.toLowerCase().indexOf(query.toLowerCase()) : -1;
+    const start = Math.max(0, match - 36), end = Math.min(value.length, start + Math.max(240, query.length + 80));
+    if (start) snippet.appendChild(document.createTextNode("…"));
+    if (match >= 0) {
+      snippet.appendChild(document.createTextNode(value.slice(start, match)));
+      snippet.appendChild(element("mark", "history-match", value.slice(match, match + query.length)));
+      snippet.appendChild(document.createTextNode(value.slice(match + query.length, end)));
+    } else snippet.appendChild(document.createTextNode(value.slice(start, end)));
+    if (end < value.length) snippet.appendChild(document.createTextNode("…"));
+    button.appendChild(snippet);
     button.addEventListener("click", () => {
       const cursor = message.historyCursor, id = message.id;
       closeHistorySearch();
@@ -1798,12 +1858,21 @@ function renderHistorySearchResults(items, pageIndex, hasMore) {
   chatState.historySearchPage = pageIndex;
   byId("btnHistoryPrevResults").hidden = pageIndex === 0;
   byId("btnHistoryNextResults").hidden = !hasMore;
-  text("historySearchStatus", items.length ? `第 ${pageIndex + 1} 页` : "没有找到记录");
+  text("historySearchStatus", items.length ? `第 ${pageIndex + 1} 页 · ${items.length} 条结果` :
+    hasMore ? "当前范围未找到记录，可继续搜索更早的消息" : "没有找到记录，试试其他关键词或日期");
+  byId("btnRetryHistorySearch").hidden = true;
   container.scrollTop = 0;
 }
 async function loadHistorySearchPage(pageIndex) {
   const cursor = chatState.historySearchPageStarts[pageIndex];
-  if (pageIndex > 0 && !cursor || chatState.historySearchPending || !chatState.currentAccount || !chatState.currentUser) return;
+  if (!Number.isInteger(pageIndex) || pageIndex < 0 || pageIndex > 0 && !cursor || chatState.historySearchPending || !chatState.currentAccount || !chatState.currentUser) return;
+  const focusResults = ["btnHistoryPrevResults", "btnHistoryNextResults", "btnRetryHistorySearch"].includes(document.activeElement?.id);
+  const cached = chatState.historySearchCache.get(pageIndex);
+  if (cached && Date.now() - cached.savedAt < 60000) {
+    renderHistorySearchResults(cached.items, pageIndex, cached.hasMore);
+    if (focusResults) (byId("historySearchResults").firstElementChild || byId("historyKeyword")).focus();
+    return;
+  }
   cancelHistorySearch();
   const account = chatState.currentAccount, user = chatState.currentUser, token = chatState.generation, request = ++chatState.historySearchRequest;
   const controller = new AbortController();
@@ -1813,11 +1882,17 @@ async function loadHistorySearchPage(pageIndex) {
   byId("btnCancelHistorySearch").hidden = false;
   byId("btnHistoryPrevResults").hidden = true;
   byId("btnHistoryNextResults").hidden = true;
+  byId("btnRetryHistorySearch").hidden = true;
+  byId("historySearchResults").setAttribute("aria-busy", "true");
   text("historySearchStatus", "搜索中…");
   try {
     const found = [];
     let before = cursor || null, hasMore = true;
-    while (!found.length && hasMore) {
+    const visited = new Set(before ? [before] : []);
+    // Empty server pages can scan thousands of messages. Keep each interaction
+    // bounded; the next-page action continues from the last scanned cursor.
+    let scannedPages = 0;
+    while (!found.length && hasMore && scannedPages++ < 12) {
       const params = new URLSearchParams({ account, user, limit: String(50 - found.length) });
       if (chatState.historySearchQuery.q) params.set("q", chatState.historySearchQuery.q);
       if (chatState.historySearchQuery.date) params.set("date", chatState.historySearchQuery.date);
@@ -1827,30 +1902,50 @@ async function loadHistorySearchPage(pageIndex) {
       if (data.account !== account || data.user !== user || !Array.isArray(data.messages)) throw new Error("Invalid search response");
       found.push(...data.messages);
       hasMore = !!data.hasMore;
-      if (hasMore && (!data.nextCursor || data.nextCursor === before)) throw new Error("Search cursor did not advance");
+      if (hasMore && (!data.nextCursor || visited.has(data.nextCursor))) throw new Error("Search cursor did not advance");
       before = data.nextCursor || null;
+      if (before) visited.add(before);
+    }
+    if (chatState.historySearchPageStarts[pageIndex + 1] !== before) {
+      chatState.historySearchPageStarts.length = pageIndex + 2;
+      for (const key of chatState.historySearchCache.keys()) if (key > pageIndex) chatState.historySearchCache.delete(key);
     }
     chatState.historySearchPageStarts[pageIndex + 1] = before;
+    chatState.historySearchCache.delete(pageIndex);
+    chatState.historySearchCache.set(pageIndex, { items: found.slice(0, 50), hasMore, savedAt: Date.now() });
+    while (chatState.historySearchCache.size > 8) chatState.historySearchCache.delete(chatState.historySearchCache.keys().next().value);
     renderHistorySearchResults(found.slice(0, 50), pageIndex, hasMore);
+    if (focusResults) (byId("historySearchResults").firstElementChild || byId("historyKeyword")).focus();
   } catch (error) {
-    if (error.name !== "AbortError" && request === chatState.historySearchRequest && token === chatState.generation) text("historySearchStatus", "搜索失败，请重试");
+    if (error.name !== "AbortError" && request === chatState.historySearchRequest && token === chatState.generation) {
+      text("historySearchStatus", "搜索失败，已保留当前结果");
+      chatState.historySearchRetryPage = pageIndex;
+      byId("btnRetryHistorySearch").hidden = false;
+    }
   } finally {
     if (request === chatState.historySearchRequest) {
       chatState.historySearchController = null;
       chatState.historySearchPending = false;
       byId("btnRunHistorySearch").disabled = false;
       byId("btnCancelHistorySearch").hidden = true;
+      byId("historySearchResults").setAttribute("aria-busy", "false");
+      const page = chatState.historySearchCache.get(chatState.historySearchPage);
+      byId("btnHistoryPrevResults").hidden = !page || chatState.historySearchPage === 0;
+      byId("btnHistoryNextResults").hidden = !page?.hasMore;
     }
   }
 }
 function startHistorySearch() {
   const q = byId("historyKeyword").value.trim();
   const date = byId("historyDate").value;
+  if (q.length > 256 || /[\u0000-\u001f]/.test(q)) { text("historySearchStatus", "关键词最多 256 字，不能包含控制字符"); return; }
   if (!q && !date) { text("historySearchStatus", "输入关键词或选择日期"); return; }
   cancelHistorySearch();
   chatState.historySearchQuery = { q, date };
   chatState.historySearchPageStarts = [null];
   chatState.historySearchPage = 0;
+  chatState.historySearchCache.clear();
+  chatState.historySearchRetryPage = null;
   byId("historySearchResults").replaceChildren();
   void loadHistorySearchPage(0);
 }
@@ -2254,6 +2349,8 @@ function switchView(target) {
   byId("personaView").classList.toggle("active", target === "persona");
   byId("navChat").classList.toggle("active", target === "chat");
   byId("navPersona").classList.toggle("active", target === "persona");
+  byId("navChat").setAttribute("aria-pressed", String(target === "chat"));
+  byId("navPersona").setAttribute("aria-pressed", String(target === "persona"));
   if (target === "persona") loadProfile(portraitState.activeMember);
   else if (!chatState.historyState) scrollToLatest();
 }
@@ -4976,6 +5073,9 @@ async function copyDraft() {
   }
 }
 byId("searchInput").addEventListener("input", renderSessions);
+for (const [id, filter] of [["btnSessionsAll", "all"], ["btnSessionsUnread", "unread"]]) {
+  byId(id).addEventListener("click", () => { chatState.sessionFilter = filter; renderSessions(); });
+}
 byId("chatMessages").addEventListener("scroll", event => {
   const container = event.currentTarget;
   if (chatState.historyState) {
@@ -4998,10 +5098,14 @@ byId("chatMessages").addEventListener("scroll", event => {
 byId("btnHistoryEarlier").addEventListener("click", () => void loadOlderHistory());
 byId("btnHistoryNewer").addEventListener("click", () => void loadNewerHistory());
 byId("btnReturnLatest").addEventListener("click", returnToLatest);
+byId("btnScrollLatest").addEventListener("click", () => { scrollToLatest(); updateHistoryNavigation(); });
 byId("btnChatHistory").addEventListener("click", () => byId("historySearchPanel").hidden ? openHistorySearch() : closeHistorySearch());
 byId("btnCloseHistorySearch").addEventListener("click", closeHistorySearch);
 byId("historySearchForm").addEventListener("submit", event => { event.preventDefault(); startHistorySearch(); });
 byId("btnCancelHistorySearch").addEventListener("click", () => cancelHistorySearch(true));
+byId("btnRetryHistorySearch").addEventListener("click", () => {
+  if (chatState.historySearchRetryPage !== null) void loadHistorySearchPage(chatState.historySearchRetryPage);
+});
 byId("btnHistoryPrevResults").addEventListener("click", () => void loadHistorySearchPage(chatState.historySearchPage - 1));
 byId("btnHistoryNextResults").addEventListener("click", () => void loadHistorySearchPage(chatState.historySearchPage + 1));
 byId("btnSend").addEventListener("click", copyDraft);
@@ -5431,7 +5535,11 @@ document.querySelectorAll(".settings-tab-btn").forEach(tab => tab.addEventListen
   document.querySelectorAll(".settings-panel").forEach(node => node.classList.toggle("active", node.id === ({ general: "panelGeneral", about: "panelAbout" })[tab.dataset.tab]));
   if (tab.dataset.tab === "about") void loadAboutVersion();
 }));
-byId("btnEmoji").addEventListener("click", event => { event.stopPropagation(); byId("emojiPopover").classList.toggle("show"); });
+byId("btnEmoji").addEventListener("click", event => {
+  event.stopPropagation();
+  const open = byId("emojiPopover").classList.toggle("show");
+  byId("btnEmoji").setAttribute("aria-expanded", String(open));
+});
 document.querySelectorAll(".popover-tab").forEach(tab => tab.addEventListener("click", event => {
   event.stopPropagation();
   document.querySelectorAll(".popover-tab").forEach(node => node.classList.toggle("active", node === tab));

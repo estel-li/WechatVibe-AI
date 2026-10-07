@@ -22,6 +22,17 @@ SPEC.loader.exec_module(runtime)
 ROOT = runtime.ROOT
 
 
+def executable_matches(payload: bytes, compiled: bytes) -> bool:
+    if payload == compiled:
+        return True
+    # The pinned Tauri bundler writes NSS into the installer input and restores
+    # UNK in target/release after bundling. Accept that exact three-byte patch,
+    # while requiring every other byte (including the PE header) to match.
+    unknown = b"__TAURI_BUNDLE_TYPE_VAR_UNK"
+    nsis = b"__TAURI_BUNDLE_TYPE_VAR_NSS"
+    return compiled.count(unknown) == 1 and payload == compiled.replace(unknown, nsis, 1)
+
+
 def verify(installer: Path, build_dir: Path, executable: Path, seven_zip: Path | None = None) -> dict:
     installer, build_dir, executable = installer.resolve(), build_dir.resolve(), executable.resolve()
     if not installer.is_file() or not executable.is_file():
@@ -45,12 +56,14 @@ def verify(installer: Path, build_dir: Path, executable: Path, seven_zip: Path |
     app = candidates[0]
     expected, client = runtime.manifest_files(build_dir)
     runtime.verify_tree(app.parent / "client", expected)
-    if runtime.digest(app) != runtime.digest(executable):
+    if not executable_matches(app.read_bytes(), executable.read_bytes()):
         raise ValueError("NSIS app differs from the compiled Tauri release executable")
     result = {"installer": str(installer), "installerSha256": runtime.digest(installer),
               "installerBytes": installer.stat().st_size, "app": str(app), "client": str(app.parent / "client"),
               "verifiedRuntimeFiles": len(expected), "version": client["sourceVersion"],
               "executableSha256": runtime.digest(app), "installed": False,
+              "compiledExecutableSha256": runtime.digest(executable),
+              "nsisBundleTypePatched": runtime.digest(app) != runtime.digest(executable),
               "payloadVerified": True}
     (check_dir / "installer-verification.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return result

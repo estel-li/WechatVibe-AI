@@ -30,6 +30,15 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 
 ## 功能介绍
 
+### 1.3.0 工作台与回复效率
+
+- **快速处理会话**：全部 / 未读筛选，方向键和 Home / End 切换会话，`Ctrl+K` 搜索会话；滚动查看旧消息后可一键返回最新。
+- **查找更顺畅**：历史搜索高亮命中词，查看过的搜索页从当前会话内存缓存恢复，失败后可重试。
+- **回复语气**：在关系提示词基础上选择简洁直接、温暖真诚、正式清晰、轻松幽默或礼貌有边界，仍以本次想表达的意思为准。
+- **保存复盘成果**：总结与回复分别保留当前会话内的完成结果，并显示原模型、范围、覆盖和已报告 token；可用原生保存对话框导出 Markdown / TXT，无需再次调用模型。
+
+完整变化、稳定性修复和升级方法见 [1.3.0 升级清单](docs/releases/1.3.0.md)；产品参考见 [竞品研究](docs/competitor-review.md)。
+
 ### 快捷选择分析模型
 
 聊天和人物画像页面顶部提供“分析模型”选择栏，可切换 **本地 Laya** 和 **已配置的大语言模型**，意图识别、情绪标签与人物画像共用当前选择。在“大模型设置”配置 API、获取模型并保存后，同一服务中已获取的模型也可从这里选择；尚未确认上下文容量的模型会先打开配置页。
@@ -147,12 +156,12 @@ AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 
 
 ## 下载安装
 
-从 [Releases](https://github.com/estel-li/WechatVibe-AI/releases/latest) 下载 Windows x64 安装版或绿色版。当前公开发行版为 **1.2.0**，提供大模型分析快捷选择并采用新的绿色双对话气泡 logo。完整变化见 [1.2.0 发布说明](docs/releases/1.2.0.md)。
+从 [Releases](https://github.com/estel-li/WechatVibe-AI/releases/latest) 下载 Windows x64 安装版或绿色版。当前公开发行版为 **1.3.0**，新增未读筛选、键盘导航、搜索缓存与高亮、回复语气和本地导出，并强化读取及网络稳定性。完整变化见 [1.3.0 升级清单](docs/releases/1.3.0.md)。
 
 | 发行文件 | 使用方式 |
 | --- | --- |
-| [1.2.2 安装版](https://github.com/estel-li/WechatVibe-AI/releases/download/v1.2.2/WechatVibe-tauri2-1.2.2-windows-x64-setup.exe) | 运行安装向导，安装到当前用户目录 |
-| [1.2.2 绿色版](https://github.com/estel-li/WechatVibe-AI/releases/download/v1.2.2/WechatVibe-tauri2-1.2.2-windows-x64.zip) | 解压后启动，无需安装应用 |
+| [1.3.0 安装版](https://github.com/estel-li/WechatVibe-AI/releases/download/v1.3.0/WechatVibe-tauri2-1.3.0-windows-x64-setup.exe) | 运行安装向导，安装到当前用户目录 |
+| [1.3.0 绿色版](https://github.com/estel-li/WechatVibe-AI/releases/download/v1.3.0/WechatVibe-tauri2-1.3.0-windows-x64.zip) | 解压后启动，无需安装应用 |
 
 两个标准包都内置 Node/Python 运行环境，不含 Laya 模型权重；本地模式首次使用需在设置中下载模型。源码运行和自行打包见 [开发与构建](#开发与构建)。
 

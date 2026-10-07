@@ -1,4 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod assistant_export;
 mod host;
 mod instance;
 
@@ -15,12 +16,14 @@ struct Desktop {
     url: tauri::Url,
     closing: AtomicBool,
     shutdown_complete: AtomicBool,
+    export_busy: AtomicBool,
     _instance: instance::Instance,
 }
 
 const COMMANDS: &[&str] = &[
     "desktop-set-theme",
     "desktop-copy-draft",
+    "desktop-save-assistant-export",
     "desktop-exit-app",
     "desktop-get-app-version",
     "desktop-get-model-download-state",
@@ -114,7 +117,10 @@ fn desktop_set_theme(
             tauri::window::Color(237, 243, 247, 255),
         ),
         ("dark", "soft") => (tauri::Theme::Dark, tauri::window::Color(27, 27, 27, 255)),
-        ("light", "standard") => (tauri::Theme::Light, tauri::window::Color(245, 245, 245, 255)),
+        ("light", "standard") => (
+            tauri::Theme::Light,
+            tauri::window::Color(245, 245, 245, 255),
+        ),
         ("dark", "standard") => (tauri::Theme::Dark, tauri::window::Color(30, 30, 30, 255)),
         _ => return Ok(false),
     };
@@ -142,6 +148,50 @@ async fn desktop_copy_draft(
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn desktop_save_assistant_export(
+    window: WebviewWindow,
+    desktop: State<'_, Desktop>,
+    filename: String,
+    content: String,
+    format: String,
+) -> Result<Value, String> {
+    trusted(&window, &desktop)?;
+    if content.trim().is_empty() || content.len() > 1024 * 1024 {
+        return Err("导出内容为空或超过大小限制".into());
+    }
+    let filename = assistant_export::filename(&filename, &format)?;
+    if desktop.export_busy.swap(true, Ordering::SeqCst) {
+        return Err("请先完成当前保存操作".into());
+    }
+    let dialog = rfd::FileDialog::new()
+        .set_parent(&window)
+        .set_title("保存 AI 结果")
+        .add_filter(
+            if format == "md" {
+                "Markdown"
+            } else {
+                "文本文件"
+            },
+            &[format.as_str()],
+        )
+        .set_file_name(&filename);
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        let Some(mut path) = dialog.save_file() else {
+            return Ok(json!({ "status": "cancelled" }));
+        };
+        if path.extension().is_none() {
+            path.set_extension(&format);
+        }
+        assistant_export::save(&path, &content, &format)?;
+        Ok(json!({ "status": "saved" }))
+    })
+    .await
+    .map_err(|_| "保存操作未能完成".to_string());
+    desktop.export_busy.store(false, Ordering::SeqCst);
+    result?
 }
 
 #[tauri::command]
@@ -325,6 +375,7 @@ fn setup(app: &mut tauri::App) -> Result<(), String> {
             url,
             closing: AtomicBool::new(false),
             shutdown_complete: AtomicBool::new(false),
+            export_busy: AtomicBool::new(false),
             _instance: instance,
         });
         Ok(())
@@ -340,6 +391,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             desktop_set_theme,
             desktop_copy_draft,
+            desktop_save_assistant_export,
             desktop_exit_app,
             desktop_get_app_version,
             desktop_get_model_download_state,

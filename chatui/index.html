@@ -55,14 +55,14 @@
     <!-- Main Navigation Icons (仅保留：聊天、人物画像) -->
     <div class="nav-icons-main">
       <!-- Chat (Active) -->
-      <button type="button" aria-label="聊天" class="nav-item active" title="聊天" data-tab="chat" id="navChat">
+      <button type="button" aria-label="聊天" class="nav-item active" title="聊天" data-tab="chat" id="navChat" aria-pressed="true">
         <svg viewBox="0 0 24 24">
           <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
         </svg>
       </button>
 
       <!-- Persona / 人格画像 (AI) -->
-      <button type="button" aria-label="人物画像" class="nav-item" title="人物画像" data-tab="persona" id="navPersona">
+      <button type="button" aria-label="人物画像" class="nav-item" title="人物画像" data-tab="persona" id="navPersona" aria-pressed="false">
         <svg viewBox="0 0 24 24">
           <path d="M12 2a5 5 0 0 1 5 5v1a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5zm0 12c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4zm7.5-9.5l.94 2.06 2.06.94-2.06.94-.94 2.06-.94-2.06-2.06-.94 2.06-.94.94-2.06z"/>
         </svg>
@@ -88,7 +88,7 @@
         <svg viewBox="0 0 24 24">
           <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
         </svg>
-        <input type="text" id="searchInput" placeholder="搜索">
+        <input type="search" id="searchInput" placeholder="搜索会话" aria-label="搜索已添加的会话" title="搜索名称、微信 ID 或最近消息 · Ctrl+K" autocomplete="off" spellcheck="false" aria-keyshortcuts="Control+k Meta+k">
       </div>
       <button type="button" class="btn-add-chat" id="btnAddConversation" title="会话目录尚未就绪" aria-label="添加会话" disabled>
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -98,7 +98,12 @@
     </div>
 
     <!-- Session Items Container -->
-    <div class="session-list" id="sessionList">
+    <div class="session-filters" aria-label="会话筛选">
+      <button type="button" id="btnSessionsAll" class="active" aria-pressed="true">全部</button>
+      <button type="button" id="btnSessionsUnread" aria-pressed="false">未读</button>
+      <span id="sessionResultCount" role="status" aria-live="polite"></span>
+    </div>
+    <div class="session-list" id="sessionList" role="group" aria-label="已添加的会话；方向键导航，回车打开">
       <div class="ui-state">正在读取会话…</div>
     </div>
 
@@ -111,6 +116,7 @@
       <div class="sweep-progress-bar">
         <div class="sweep-progress-fill" id="sweepProgressFill"></div>
       </div>
+    </div>
   </section>
 
   <!-- ================= COLUMN 3: RIGHT MAIN CHAT PANE ================= -->
@@ -149,24 +155,28 @@
         <span class="history-nav-status" id="historyNavStatus"></span>
         <button type="button" class="history-nav-button" id="btnHistoryNewer" hidden>加载较新</button>
       </div>
-      <div class="chat-messages" id="chatMessages">
+      <div class="chat-messages" id="chatMessages" tabindex="0" role="region" aria-label="聊天消息">
         <!-- Rendered dynamically by app.js -->
       </div>
+      <button type="button" class="scroll-latest-button" id="btnScrollLatest" title="回到最新消息 · Alt+End" hidden>↓ 最新消息</button>
       <aside class="history-search-panel" id="historySearchPanel" aria-label="聊天记录" hidden>
         <div class="history-panel-head">
           <strong>聊天记录</strong>
           <button type="button" class="history-panel-close" id="btnCloseHistorySearch" aria-label="关闭聊天记录">×</button>
         </div>
         <form id="historySearchForm" class="history-search-form">
-          <input type="search" id="historyKeyword" placeholder="关键词" aria-label="关键词">
+          <input type="search" id="historyKeyword" placeholder="关键词" aria-label="关键词" maxlength="256" autocomplete="off">
           <input type="date" id="historyDate" aria-label="日期">
           <div class="history-search-actions">
             <button type="submit" id="btnRunHistorySearch">搜索</button>
             <button type="button" id="btnCancelHistorySearch" hidden>取消</button>
           </div>
         </form>
-        <div class="history-search-status" id="historySearchStatus" role="status"></div>
-        <div class="history-search-results" id="historySearchResults"></div>
+        <div class="history-search-feedback">
+          <div class="history-search-status" id="historySearchStatus" role="status"></div>
+          <button type="button" id="btnRetryHistorySearch" class="history-nav-button" hidden>重试本页</button>
+        </div>
+        <div class="history-search-results" id="historySearchResults" aria-label="搜索结果" aria-busy="false"></div>
         <div class="history-search-pages">
           <button type="button" id="btnHistoryPrevResults" hidden>上一页</button>
           <button type="button" id="btnHistoryNextResults" hidden>下一页</button>
@@ -187,9 +197,9 @@
       <div class="input-toolbar">
         <div class="toolbar-left">
           <!-- Emoji Smiley -->
-          <div class="tool-btn" id="btnEmoji" title="表情">
+          <button type="button" class="tool-btn" id="btnEmoji" title="表情" aria-label="选择表情" aria-controls="emojiPopover" aria-expanded="false">
             <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
-          </div>
+          </button>
 
           <!-- Send File -->
           <div class="tool-btn disabled" id="btnFile" title="不支持附件" aria-disabled="true">
@@ -213,12 +223,12 @@
 
       <!-- Textarea Wrap -->
       <div class="input-textarea-wrap">
-        <textarea id="chatInput" class="chat-textarea" placeholder="草稿仅用于复制，不会发送到微信"></textarea>
+        <textarea id="chatInput" class="chat-textarea" aria-label="回复草稿" aria-describedby="draftShortcutHint" placeholder="草稿仅用于复制，不会发送到微信"></textarea>
       </div>
 
       <!-- Bottom Action Row -->
       <div class="input-bottom-bar">
-        <span class="shortcut-hint">Enter 复制草稿，Shift+Enter 换行 · 不发送</span>
+        <span class="shortcut-hint" id="draftShortcutHint">Enter 复制草稿，Shift+Enter 换行 · 不发送</span>
         <button class="btn-send" id="btnSend">复制草稿</button>
       </div>
     </div>
@@ -416,7 +426,7 @@
         <div class="settings-panel active" id="panelGeneral" role="tabpanel" aria-labelledby="tabGeneral">
           <div class="settings-title">通用设置</div>
           <div class="settings-row">
-            <span>主题外观</span>
+            <label for="selectThemeMode">主题外观</label>
             <select id="selectThemeMode">
               <option value="dark">深色模式 (默认)</option>
               <option value="light">浅色模式 (白天)</option>
@@ -431,7 +441,7 @@
           </div>
           <p class="assistant-settings-note">配色独立于深浅主题，选择后立即生效并保存。柔和配色保留灰绿与蓝灰；标准配色使用中性背景和微信绿。</p>
           <div class="settings-row">
-            <span>界面缩放比例</span>
+            <label for="selectZoomLevel">界面缩放比例</label>
             <select id="selectZoomLevel">
               <option value="1.0">100% (标准)</option>
               <option value="0.9">90% (紧凑)</option>
@@ -440,6 +450,16 @@
               <option value="1.5">150% (特大)</option>
             </select>
           </div>
+          <details class="keyboard-shortcuts">
+            <summary>快捷键与键盘操作</summary>
+            <dl>
+              <div><dt><kbd>Ctrl</kbd> + <kbd>K</kbd></dt><dd>搜索会话；↓ 进入结果，Enter 打开</dd></div>
+              <div><dt><kbd>Ctrl</kbd> + <kbd>F</kbd></dt><dd>搜索当前会话的聊天记录</dd></div>
+              <div><dt><kbd>Alt</kbd> + <kbd>↑ / ↓</kbd></dt><dd>切换上一个或下一个会话</dd></div>
+              <div><dt><kbd>Alt</kbd> + <kbd>End</kbd></dt><dd>返回最新消息</dd></div>
+              <div><dt><kbd>Esc</kbd></dt><dd>关闭面板；在会话搜索框中清空搜索</dd></div>
+            </dl>
+          </details>
           <p class="assistant-settings-note">AI 模型统一在此配置，供意图识别、人物画像、对话总结和回复草稿共用。切回本地 Laya 后，总结与回复仍使用已保存的 API 模型。</p>
           <div class="settings-row">
             <label for="selectModelSource">模型来源</label>
@@ -734,6 +754,7 @@
       <section id="assistantReplyPanel" role="tabpanel" aria-labelledby="assistantTabReply" hidden>
         <div class="assistant-form-row">
           <label>回复提示词预设<select id="assistantRelationship"><option value="friend">普通朋友 · 自然友好</option><option value="close_friend">亲密朋友 · 情绪承接</option><option value="colleague">同事 · 专业清晰</option><option value="relative">亲戚 · 亲切有礼</option><option value="elder">长辈 · 尊重耐心</option><option value="custom">通用回复 · 自定义关系</option></select></label>
+          <label>回复语气<select id="assistantReplyStyle"></select></label>
           <label>上下文范围<select id="assistantReplyRange"><option value="recent">最近对话</option><option value="all">全部对话</option><option value="time">指定时间</option></select></label>
         </div>
         <div class="assistant-time-shortcuts" role="group" aria-label="回复上下文时间快捷选择">
@@ -753,9 +774,10 @@
       <section class="assistant-result" id="assistantResultSection" hidden>
         <div class="assistant-result-head"><strong id="assistantResultTitle">生成结果</strong><button type="button" id="btnAssistantCancel" hidden>停止生成</button></div>
         <p id="assistantJobStatus" class="assistant-job-status" role="status" aria-live="polite"></p>
+        <p id="assistantResultMeta" class="assistant-result-meta"></p>
         <progress id="assistantProgress" aria-label="AI 助手处理进度" hidden></progress>
         <pre id="assistantResultText" tabindex="0" aria-label="生成结果"></pre>
-        <div class="assistant-result-actions" id="assistantResultActions" hidden><button type="button" id="btnAssistantRegenerate">重新生成</button><button type="button" id="btnAssistantCopy">复制结果</button><button type="button" class="assistant-primary" id="btnAssistantInsert">放入回复草稿</button></div>
+        <div class="assistant-result-actions" id="assistantResultActions" hidden><button type="button" id="btnAssistantRegenerate">重新生成</button><button type="button" id="btnAssistantCopy">复制结果</button><button type="button" id="btnAssistantExportMarkdown">导出 Markdown</button><button type="button" id="btnAssistantExportText">导出 TXT</button><button type="button" class="assistant-primary" id="btnAssistantInsert">放入回复草稿</button></div>
       </section>
     </div>
   </section>

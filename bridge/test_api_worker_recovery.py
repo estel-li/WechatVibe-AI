@@ -11,6 +11,21 @@ from api_portrait_statistics import append_batch, empty_statistics, profile_from
 
 
 class ApiWorkerRecoveryTests(unittest.TestCase):
+    def test_malformed_json_envelopes_do_not_kill_following_responses(self):
+        analyzer = NodeAnalysis(api_only=True)
+        analyzer.version = "synthetic"
+        process = Mock()
+        analyzer.process = process
+        process.stdout = iter(json.dumps(value) for value in (
+            [], None, "synthetic log", {"id": [1]}, {"id": {"unexpected": 1}},
+            {"id": True}, {"ready": True, "model": "invalid-status"},
+            {"ready": True, "analysisVersion": "synthetic", "model": {"state": "ready"}},
+            {"id": 7, "analysisVersion": "synthetic", "text": "valid synthetic result"}))
+        analyzer._read(process)
+        self.assertEqual(analyzer.pending[7]["text"], "valid synthetic result")
+        self.assertEqual(set(analyzer.pending), {7})
+        self.assertEqual(analyzer.running_version, "synthetic")
+
     def test_portrait_classifier_runs_once_through_real_worker_without_local_model(self):
         calls = []
         class Gateway(BaseHTTPRequestHandler):

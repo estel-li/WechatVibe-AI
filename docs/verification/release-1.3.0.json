@@ -1,0 +1,710 @@
+{
+  "schema": 1,
+  "version": "1.3.0",
+  "verifiedOn": "2026-10-08",
+  "maintainer": "estel-li",
+  "repository": "https://github.com/estel-li/WechatVibe-AI",
+  "publicSourceFilesMatched": 139,
+  "portableAndInstallerClientFilesIdentical": true,
+  "verifiedRuntimeFiles": 8075,
+  "tests": {
+    "npmTest": "passed",
+    "typecheck": "passed",
+    "releaseMetadata": "passed",
+    "node": 523,
+    "pythonFullSuite": 522,
+    "pythonSuites": 43,
+    "extraInstallerVerifierTests": 3,
+    "rust": 6,
+    "nodeScriptSuites": 8,
+    "clippy": "passed including source-only CI configuration",
+    "productionAuditKnownVulnerabilities": 0
+  },
+  "nativeUI": {
+    "portable": {
+      "checksPassed": 29,
+      "checks": [
+        "Renderer has no Node require and native shell blocks external navigation/popups",
+        "Native desktop bridge, bilingual Zhiyi / WechatVibe AI branding and original 36px titlebar",
+        "Conversation selection, sidebar switching, chat and persona navigation",
+        "Ctrl+K, arrow/Home/End/Enter navigation, Alt conversation switching, Escape search reset and unread filtering",
+        "Ctrl+F history search, safe match snippets, failed-page retry, cached back navigation and focus restoration",
+        "Scrolled conversations reveal latest-message action and Alt+End returns to the bottom",
+        "Small 720×520 chat at 150% zoom keeps search, AI controls and copy action reachable",
+        "Rolling message windows retain 79 of 80 DOM rows; corrected text replaces only its row",
+        "Trusted UI gesture copies synthetic draft through native clipboard",
+        "Settings trap focus, restore the opener, support Escape and keyboard tabs, and display the owner's About page",
+        "Both palettes switch immediately in light/dark appearance, match bubble arrows and AI controls, persist, and restore after reload",
+        "Light/dark theme and zoom preserve titlebar geometry",
+        "Native app version and existing software-update UI",
+        "Custom maximize and restore controls operate native window",
+        "Custom minimize and second-instance restore/focus operate native window",
+        "Native AI summary sends all 1305 history messages including unseen earliest records to the real HTTP/Python/Node stack",
+        "Native first-map output truncation recovers once using the complete original batch without missing or duplicating history",
+        "Native AI summary applies exact inclusive start/end time to 10 selected messages",
+        "Native summary and reply shortcuts select the last day, week and calendar month with second precision",
+        "Six manual reply styles reach real generation without rewriting relationship prompts or issuing a request on selection",
+        "All five relationship presets reach actual generation with their distinct system prompts",
+        "Native summary and reply retain separate completed results across tab changes without extra AI calls",
+        "Native save dialog creates verified Chinese Markdown result with model/coverage/token metadata and no source-history or credential fields",
+        "Custom prompt, user instruction and regeneration work; native clipboard and draft insertion never send a WeChat message",
+        "Native cancel and actual app conversation switching discard obsolete AI work/results",
+        "Native result export buttons remain visible, enabled and keyboard reachable at 720x520 with 150 percent zoom",
+        "Native general settings discover/test/save the single API profile; seven summary and six reply prompts save independently",
+        "Assistant prompt panels and general model settings fit 720x520 at 150 percent zoom with consistent focus",
+        "Worker crash is reported and future RPC fails promptly; native close will run ownership-checked cleanup"
+      ],
+      "nativeExitCode": 0,
+      "syntheticData": true,
+      "consoleErrors": [],
+      "executableSha256": "90ebf9b7afedab6fd73a6f90524acde86939c17eddc92d0c56c82af8cc75ae87",
+      "assistant": {
+        "allMessages": 1305,
+        "timeMessages": 10,
+        "relationshipPresets": 5,
+        "customPrompt": true,
+        "regeneration": true,
+        "clipboard": true,
+        "insertDraft": true,
+        "quickTimeRanges": [
+          "day",
+          "week",
+          "month"
+        ],
+        "truncatedMapRecovery": true,
+        "replyStyles": [
+          "natural",
+          "concise",
+          "warm",
+          "professional",
+          "playful",
+          "boundaries"
+        ],
+        "styledInstructions": true,
+        "resultMetadata": "模型：synthetic-model · 范围：全部对话 · 完整覆盖 1305 条 / 218 个来源片段 · 模型调用 230/230 · 已报告 token：输入 2,300 / 输出 1,150",
+        "separateResults": true,
+        "nativeExport": true,
+        "smallExportButtons": {
+          "btnAssistantExportMarkdown": {
+            "x": 331.5,
+            "y": 324.8515625,
+            "right": 509.78125,
+            "bottom": 380.046875,
+            "width": 720,
+            "height": 520,
+            "focused": true,
+            "disabled": false
+          },
+          "btnAssistantExportText": {
+            "x": 523.28125,
+            "y": 324.8515625,
+            "right": 641.875,
+            "bottom": 380.046875,
+            "width": 720,
+            "height": 520,
+            "focused": true,
+            "disabled": false
+          }
+        },
+        "summaryPresets": 7,
+        "replyPresets": 6,
+        "unifiedModelSettings": true,
+        "modelDiscovery": true,
+        "connectionTestSyntheticOnly": true,
+        "promptPersistence": true,
+        "cancelAndSwitch": true,
+        "smallViewport": {
+          "x": 30,
+          "y": 48,
+          "right": 690,
+          "bottom": 472,
+          "width": 720,
+          "height": 520
+        }
+      },
+      "smallChatViewport": [
+        {
+          "id": "btnAISummary",
+          "x": 381,
+          "y": 374,
+          "right": 469.0078125,
+          "bottom": 412
+        },
+        {
+          "id": "btnAIReply",
+          "x": 499.0078125,
+          "y": 374,
+          "right": 601.0078125,
+          "bottom": 412
+        },
+        {
+          "id": "btnSend",
+          "x": 558,
+          "y": 466,
+          "right": 693,
+          "bottom": 508
+        },
+        {
+          "id": "btnChatHistory",
+          "x": 591,
+          "y": 153.75,
+          "right": 696,
+          "bottom": 195.75
+        },
+        {
+          "id": "btnSessionsUnread",
+          "x": 177,
+          "y": 130.5,
+          "right": 240,
+          "bottom": 168
+        },
+        {
+          "id": "btnAnalysisModelSettings",
+          "x": 579,
+          "y": 46.5,
+          "right": 696,
+          "bottom": 88.5
+        }
+      ],
+      "rendererPerformance": {
+        "total": 80,
+        "retained": 79,
+        "rollingCreated": 1,
+        "correctedCreated": 1,
+        "durationMs": 1.0999999940395355
+      },
+      "colorPalette": {
+        "choices": [
+          "soft",
+          "standard"
+        ],
+        "fourAppearances": {
+          "soft-dark": {
+            "stored": {
+              "theme": "dark",
+              "palette": "soft",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": false,
+            "header": "rgb(27, 27, 27)",
+            "rail": "rgb(25, 25, 25)",
+            "chat": "rgb(27, 27, 27)",
+            "accent": "#76a988",
+            "bubble": "rgb(53, 70, 58)",
+            "arrow": "rgb(53, 70, 58)",
+            "assistantButton": "rgb(8, 127, 75)"
+          },
+          "soft-light": {
+            "stored": {
+              "theme": "light",
+              "palette": "soft",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": false,
+            "header": "rgb(237, 243, 247)",
+            "rail": "rgb(220, 232, 237)",
+            "chat": "rgb(242, 247, 248)",
+            "accent": "#277f91",
+            "bubble": "rgb(205, 231, 237)",
+            "arrow": "rgb(205, 231, 237)",
+            "assistantButton": "rgb(8, 127, 75)"
+          },
+          "standard-dark": {
+            "stored": {
+              "theme": "dark",
+              "palette": "standard",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": true,
+            "header": "rgb(30, 30, 30)",
+            "rail": "rgb(43, 43, 43)",
+            "chat": "rgb(30, 30, 30)",
+            "accent": "#07c160",
+            "bubble": "rgb(7, 193, 96)",
+            "arrow": "rgb(7, 193, 96)",
+            "assistantButton": "rgb(7, 193, 96)"
+          },
+          "standard-light": {
+            "stored": {
+              "theme": "light",
+              "palette": "standard",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": true,
+            "header": "rgb(245, 245, 245)",
+            "rail": "rgb(230, 230, 230)",
+            "chat": "rgb(245, 245, 245)",
+            "accent": "#07c160",
+            "bubble": "rgb(149, 236, 105)",
+            "arrow": "rgb(149, 236, 105)",
+            "assistantButton": "rgb(7, 193, 96)"
+          }
+        },
+        "reloadPreserved": true
+      }
+    },
+    "installer": {
+      "checksPassed": 28,
+      "checks": [
+        "Renderer has no Node require and native shell blocks external navigation/popups",
+        "Native desktop bridge, bilingual Zhiyi / WechatVibe AI branding and original 36px titlebar",
+        "Conversation selection, sidebar switching, chat and persona navigation",
+        "Ctrl+K, arrow/Home/End/Enter navigation, Alt conversation switching, Escape search reset and unread filtering",
+        "Ctrl+F history search, safe match snippets, failed-page retry, cached back navigation and focus restoration",
+        "Scrolled conversations reveal latest-message action and Alt+End returns to the bottom",
+        "Small 720×520 chat at 150% zoom keeps search, AI controls and copy action reachable",
+        "Rolling message windows retain 79 of 80 DOM rows; corrected text replaces only its row",
+        "Trusted UI gesture copies synthetic draft through native clipboard",
+        "Settings trap focus, restore the opener, support Escape and keyboard tabs, and display the owner's About page",
+        "Both palettes switch immediately in light/dark appearance, match bubble arrows and AI controls, persist, and restore after reload",
+        "Light/dark theme and zoom preserve titlebar geometry",
+        "Native app version and existing software-update UI",
+        "Custom maximize and restore controls operate native window",
+        "Custom minimize and second-instance restore/focus operate native window",
+        "Native AI summary sends all 1305 history messages including unseen earliest records to the real HTTP/Python/Node stack",
+        "Native first-map output truncation recovers once using the complete original batch without missing or duplicating history",
+        "Native AI summary applies exact inclusive start/end time to 10 selected messages",
+        "Native summary and reply shortcuts select the last day, week and calendar month with second precision",
+        "Six manual reply styles reach real generation without rewriting relationship prompts or issuing a request on selection",
+        "All five relationship presets reach actual generation with their distinct system prompts",
+        "Native summary and reply retain separate completed results across tab changes without extra AI calls",
+        "Custom prompt, user instruction and regeneration work; native clipboard and draft insertion never send a WeChat message",
+        "Native cancel and actual app conversation switching discard obsolete AI work/results",
+        "Native result export buttons remain visible, enabled and keyboard reachable at 720x520 with 150 percent zoom",
+        "Native general settings discover/test/save the single API profile; seven summary and six reply prompts save independently",
+        "Assistant prompt panels and general model settings fit 720x520 at 150 percent zoom with consistent focus",
+        "Worker crash is reported and future RPC fails promptly; native close will run ownership-checked cleanup"
+      ],
+      "nativeExitCode": 0,
+      "syntheticData": true,
+      "consoleErrors": [],
+      "executableSha256": "9c1a24e50d908b771f2f5e8c220f0c01e0919769bc1c5a4aba327936c79fdb6a",
+      "assistant": {
+        "allMessages": 1305,
+        "timeMessages": 10,
+        "relationshipPresets": 5,
+        "customPrompt": true,
+        "regeneration": true,
+        "clipboard": true,
+        "insertDraft": true,
+        "quickTimeRanges": [
+          "day",
+          "week",
+          "month"
+        ],
+        "truncatedMapRecovery": true,
+        "replyStyles": [
+          "natural",
+          "concise",
+          "warm",
+          "professional",
+          "playful",
+          "boundaries"
+        ],
+        "styledInstructions": true,
+        "resultMetadata": "模型：synthetic-model · 范围：全部对话 · 完整覆盖 1305 条 / 218 个来源片段 · 模型调用 230/230 · 已报告 token：输入 2,300 / 输出 1,150",
+        "separateResults": true,
+        "nativeExport": false,
+        "smallExportButtons": {
+          "btnAssistantExportMarkdown": {
+            "x": 331.5,
+            "y": 324.8515625,
+            "right": 509.78125,
+            "bottom": 380.046875,
+            "width": 720,
+            "height": 520,
+            "focused": true,
+            "disabled": false
+          },
+          "btnAssistantExportText": {
+            "x": 523.28125,
+            "y": 324.8515625,
+            "right": 641.875,
+            "bottom": 380.046875,
+            "width": 720,
+            "height": 520,
+            "focused": true,
+            "disabled": false
+          }
+        },
+        "summaryPresets": 7,
+        "replyPresets": 6,
+        "unifiedModelSettings": true,
+        "modelDiscovery": true,
+        "connectionTestSyntheticOnly": true,
+        "promptPersistence": true,
+        "cancelAndSwitch": true,
+        "smallViewport": {
+          "x": 30,
+          "y": 48,
+          "right": 690,
+          "bottom": 472,
+          "width": 720,
+          "height": 520
+        }
+      },
+      "smallChatViewport": [
+        {
+          "id": "btnAISummary",
+          "x": 381,
+          "y": 374,
+          "right": 469.0078125,
+          "bottom": 412
+        },
+        {
+          "id": "btnAIReply",
+          "x": 499.0078125,
+          "y": 374,
+          "right": 601.0078125,
+          "bottom": 412
+        },
+        {
+          "id": "btnSend",
+          "x": 558,
+          "y": 466,
+          "right": 693,
+          "bottom": 508
+        },
+        {
+          "id": "btnChatHistory",
+          "x": 591,
+          "y": 153.75,
+          "right": 696,
+          "bottom": 195.75
+        },
+        {
+          "id": "btnSessionsUnread",
+          "x": 177,
+          "y": 130.5,
+          "right": 240,
+          "bottom": 168
+        },
+        {
+          "id": "btnAnalysisModelSettings",
+          "x": 579,
+          "y": 46.5,
+          "right": 696,
+          "bottom": 88.5
+        }
+      ],
+      "rendererPerformance": {
+        "total": 80,
+        "retained": 79,
+        "rollingCreated": 1,
+        "correctedCreated": 1,
+        "durationMs": 1.2000000029802322
+      },
+      "colorPalette": {
+        "choices": [
+          "soft",
+          "standard"
+        ],
+        "fourAppearances": {
+          "soft-dark": {
+            "stored": {
+              "theme": "dark",
+              "palette": "soft",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": false,
+            "header": "rgb(27, 27, 27)",
+            "rail": "rgb(25, 25, 25)",
+            "chat": "rgb(27, 27, 27)",
+            "accent": "#76a988",
+            "bubble": "rgb(53, 70, 58)",
+            "arrow": "rgb(53, 70, 58)",
+            "assistantButton": "rgb(8, 127, 75)"
+          },
+          "soft-light": {
+            "stored": {
+              "theme": "light",
+              "palette": "soft",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": false,
+            "header": "rgb(237, 243, 247)",
+            "rail": "rgb(220, 232, 237)",
+            "chat": "rgb(242, 247, 248)",
+            "accent": "#277f91",
+            "bubble": "rgb(205, 231, 237)",
+            "arrow": "rgb(205, 231, 237)",
+            "assistantButton": "rgb(8, 127, 75)"
+          },
+          "standard-dark": {
+            "stored": {
+              "theme": "dark",
+              "palette": "standard",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": true,
+            "header": "rgb(30, 30, 30)",
+            "rail": "rgb(43, 43, 43)",
+            "chat": "rgb(30, 30, 30)",
+            "accent": "#07c160",
+            "bubble": "rgb(7, 193, 96)",
+            "arrow": "rgb(7, 193, 96)",
+            "assistantButton": "rgb(7, 193, 96)"
+          },
+          "standard-light": {
+            "stored": {
+              "theme": "light",
+              "palette": "standard",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": true,
+            "header": "rgb(245, 245, 245)",
+            "rail": "rgb(230, 230, 230)",
+            "chat": "rgb(245, 245, 245)",
+            "accent": "#07c160",
+            "bubble": "rgb(149, 236, 105)",
+            "arrow": "rgb(149, 236, 105)",
+            "assistantButton": "rgb(7, 193, 96)"
+          }
+        },
+        "reloadPreserved": true
+      }
+    },
+    "analysisModels": {
+      "checksPassed": 20,
+      "checks": [
+        "Renderer has no Node require and native shell blocks external navigation/popups",
+        "Native desktop bridge, bilingual Zhiyi / WechatVibe AI branding and original 36px titlebar",
+        "Conversation selection, sidebar switching, chat and persona navigation",
+        "Ctrl+K, arrow/Home/End/Enter navigation, Alt conversation switching, Escape search reset and unread filtering",
+        "Ctrl+F history search, safe match snippets, failed-page retry, cached back navigation and focus restoration",
+        "Scrolled conversations reveal latest-message action and Alt+End returns to the bottom",
+        "Small 720×520 chat at 150% zoom keeps search, AI controls and copy action reachable",
+        "Rolling message windows retain 79 of 80 DOM rows; corrected text replaces only its row",
+        "Trusted UI gesture copies synthetic draft through native clipboard",
+        "Settings trap focus, restore the opener, support Escape and keyboard tabs, and display the owner's About page",
+        "Both palettes switch immediately in light/dark appearance, match bubble arrows and AI controls, persist, and restore after reload",
+        "Light/dark theme and zoom preserve titlebar geometry",
+        "Native app version and existing software-update UI",
+        "Custom maximize and restore controls operate native window",
+        "Custom minimize and second-instance restore/focus operate native window",
+        "Chat quick selection activates the saved LLM and displays real HTTP/Python/Node/SDK intent results",
+        "The selected LLM also generates the real native portrait with shared scoring and actual message evidence",
+        "Local/LLM round trips synchronize both views and restore cached analysis without new model requests",
+        "All five service presets set official Base URLs and a 1M default while clearing unsaved credentials",
+        "Analysis configuration opens from either view and the shared selector fits a small native window"
+      ],
+      "nativeExitCode": 0,
+      "syntheticData": true,
+      "consoleErrors": [],
+      "executableSha256": "90ebf9b7afedab6fd73a6f90524acde86939c17eddc92d0c56c82af8cc75ae87",
+      "analysisModels": {
+        "synthetic": true,
+        "remoteCalls": 0,
+        "insightRequests": 1,
+        "portraitRequests": 1,
+        "sourceScopedCacheRestored": true,
+        "servicePresets": [
+          "deepseek",
+          "minimax",
+          "zhipu",
+          "kimi",
+          "siliconflow"
+        ],
+        "defaultContextTokens": 1000000
+      },
+      "smallChatViewport": [
+        {
+          "id": "btnAISummary",
+          "x": 381,
+          "y": 374,
+          "right": 469.0078125,
+          "bottom": 412
+        },
+        {
+          "id": "btnAIReply",
+          "x": 499.0078125,
+          "y": 374,
+          "right": 601.0078125,
+          "bottom": 412
+        },
+        {
+          "id": "btnSend",
+          "x": 558,
+          "y": 466,
+          "right": 693,
+          "bottom": 508
+        },
+        {
+          "id": "btnChatHistory",
+          "x": 591,
+          "y": 153.75,
+          "right": 696,
+          "bottom": 195.75
+        },
+        {
+          "id": "btnSessionsUnread",
+          "x": 177,
+          "y": 130.5,
+          "right": 240,
+          "bottom": 168
+        },
+        {
+          "id": "btnAnalysisModelSettings",
+          "x": 579,
+          "y": 46.5,
+          "right": 696,
+          "bottom": 88.5
+        }
+      ],
+      "rendererPerformance": {
+        "total": 80,
+        "retained": 79,
+        "rollingCreated": 1,
+        "correctedCreated": 1,
+        "durationMs": 1.1000000089406967
+      },
+      "colorPalette": {
+        "choices": [
+          "soft",
+          "standard"
+        ],
+        "fourAppearances": {
+          "soft-dark": {
+            "stored": {
+              "theme": "dark",
+              "palette": "soft",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": false,
+            "header": "rgb(27, 27, 27)",
+            "rail": "rgb(25, 25, 25)",
+            "chat": "rgb(27, 27, 27)",
+            "accent": "#76a988",
+            "bubble": "rgb(53, 70, 58)",
+            "arrow": "rgb(53, 70, 58)",
+            "assistantButton": "rgb(8, 127, 75)"
+          },
+          "soft-light": {
+            "stored": {
+              "theme": "light",
+              "palette": "soft",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": false,
+            "header": "rgb(237, 243, 247)",
+            "rail": "rgb(220, 232, 237)",
+            "chat": "rgb(242, 247, 248)",
+            "accent": "#277f91",
+            "bubble": "rgb(205, 231, 237)",
+            "arrow": "rgb(205, 231, 237)",
+            "assistantButton": "rgb(8, 127, 75)"
+          },
+          "standard-dark": {
+            "stored": {
+              "theme": "dark",
+              "palette": "standard",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": true,
+            "header": "rgb(30, 30, 30)",
+            "rail": "rgb(43, 43, 43)",
+            "chat": "rgb(30, 30, 30)",
+            "accent": "#07c160",
+            "bubble": "rgb(7, 193, 96)",
+            "arrow": "rgb(7, 193, 96)",
+            "assistantButton": "rgb(7, 193, 96)"
+          },
+          "standard-light": {
+            "stored": {
+              "theme": "light",
+              "palette": "standard",
+              "zoom": "1.0",
+              "intent": true,
+              "backgroundAnalyze": false
+            },
+            "standard": true,
+            "header": "rgb(245, 245, 245)",
+            "rail": "rgb(230, 230, 230)",
+            "chat": "rgb(245, 245, 245)",
+            "accent": "#07c160",
+            "bubble": "rgb(149, 236, 105)",
+            "arrow": "rgb(149, 236, 105)",
+            "assistantButton": "rgb(7, 193, 96)"
+          }
+        },
+        "reloadPreserved": true
+      }
+    }
+  },
+  "signature": {
+    "algorithm": "Ed25519",
+    "pinnedPublicKeyVerified": true
+  },
+  "installerPayload": {
+    "payloadVerified": true,
+    "installed": false,
+    "executableSha256": "9c1a24e50d908b771f2f5e8c220f0c01e0919769bc1c5a4aba327936c79fdb6a",
+    "compiledExecutableSha256": "b8a38527249f78e2b45d530217d5571e00a12e8a5132bd7ce57baf49588b86d2",
+    "onlyFrameworkBundleTypeMarkerDiffers": true
+  },
+  "assets": [
+    {
+      "file": "dist/releases-v1.3.0/SHA256SUMS-tauri2.txt",
+      "name": "SHA256SUMS-tauri2.txt",
+      "bytes": 293,
+      "sha256": "3dd5b89e14becfe9898c04425b0e65f8efaad1e0a8d289adf93d2ab861ab7b85"
+    },
+    {
+      "file": "dist/releases-v1.3.0/SHA256SUMS.txt",
+      "name": "SHA256SUMS.txt",
+      "bytes": 498,
+      "sha256": "65cb9b298152b570ef89e548056680d93c24121779273e18f99097fa55c6b7b0"
+    },
+    {
+      "file": "dist/releases-v1.3.0/update-manifest-tauri2.json",
+      "name": "update-manifest-tauri2.json",
+      "bytes": 358,
+      "sha256": "9bb13f6f75c6fde51347e83744cd753f1e598f945caf43b411ea91dc22975fea"
+    },
+    {
+      "file": "dist/releases-v1.3.0/update-manifest-tauri2.sig",
+      "name": "update-manifest-tauri2.sig",
+      "bytes": 64,
+      "sha256": "145901f42eaa441144f75a410606aea892b3561a72939a03fd70df94b066b04b"
+    },
+    {
+      "file": "dist/releases-v1.3.0/WechatVibe-tauri2-1.3.0-windows-x64-setup.exe",
+      "name": "WechatVibe-tauri2-1.3.0-windows-x64-setup.exe",
+      "bytes": 132046397,
+      "sha256": "f06dfc4f35bbd3b7e7d4809fcecf71449a99e63cc34fd65bfee17d665592cc92"
+    },
+    {
+      "file": "dist/releases-v1.3.0/WechatVibe-tauri2-1.3.0-windows-x64.zip",
+      "name": "WechatVibe-tauri2-1.3.0-windows-x64.zip",
+      "bytes": 195643936,
+      "sha256": "e8bb2796c3d7eb47ea8fa8e20d27ff07621236a6721112e7c669395809a0812d"
+    }
+  ],
+  "limits": [
+    "Synthetic conversations and loopback model fixtures only; no real WeChat account or external paid API.",
+    "Installer payload was extracted and executed without performing an OS installation.",
+    "Mutable server_id cache-key migration remains deferred; see production review."
+  ]
+}

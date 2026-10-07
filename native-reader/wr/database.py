@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import heapq
+import re
 import sqlite3
 import zstandard
 from dataclasses import dataclass
@@ -28,6 +29,7 @@ SECONDS_MAX = 100_000_000_000  # below this, a create_time is seconds, not ms
 KIND_TEXT = "text"
 KIND_NON_TEXT = "nontext"
 KIND_SYSTEM = "system"
+MAX_TEXT_BYTES = 8 * 1024 * 1024
 
 SYSTEM_TYPES = {10000, 10002}
 
@@ -60,7 +62,7 @@ def normalize_time(value: object) -> int:
         return 0
     try:
         number = int(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return 0
     if number <= 0:
         return 0
@@ -71,6 +73,8 @@ def extract_text(message_content: object, compress_content: object) -> str | Non
     """Return exact text, or None when the body cannot be faithfully decoded (=> nontext)."""
     raw: bytes | None = None
     if isinstance(message_content, str):
+        if len(message_content) > MAX_TEXT_BYTES:
+            return None
         if message_content != "":
             raw = message_content.encode("utf-8", "surrogatepass")
     elif isinstance(message_content, (bytes, bytearray)) and len(message_content) > 0:
@@ -81,9 +85,14 @@ def extract_text(message_content: object, compress_content: object) -> str | Non
         return ""
     if raw[:4] == ZSTD_MAGIC:
         try:
-            raw = zstandard.ZstdDecompressor().decompress(raw)
+            # Read at most one message's budget even if the frame advertises a
+            # much larger expanded length. Corrupt/bomb inputs become nontext.
+            with zstandard.ZstdDecompressor().stream_reader(raw) as reader:
+                raw = reader.read(MAX_TEXT_BYTES + 1)
         except zstandard.ZstdError:
             return None
+    if len(raw) > MAX_TEXT_BYTES:
+        return None
     try:
         return raw.decode("utf-8")
     except UnicodeDecodeError:
@@ -115,14 +124,21 @@ class SqliteShard:
         try:
             self._conn = sqlite3.connect(":memory:")
             self._conn.deserialize(image)
+            self._conn.execute("PRAGMA query_only=ON")
         except sqlite3.Error as exc:
+            if hasattr(self, "_conn"):
+                self._conn.close()
             raise errors.ProtocolError(errors.UNSUPPORTED_SCHEMA, "sqlite deserialize failed") from exc
         self._name_to_id: dict[str, int] = {}
         self._id_to_name: dict[int, str] = {}
         self._message_tables: dict[str, str] = {}
         self._columns: dict[str, set[str]] = {}
         self.self_id: int | None = None
-        self._discover()
+        try:
+            self._discover()
+        except Exception:
+            self.close()
+            raise
         if self_username and self_username in self._name_to_id:
             self.self_id = self._name_to_id[self_username]
 
@@ -419,7 +435,7 @@ class ContactStore:
         self._contact_meta = contact_meta or {}
         self._usernames: dict[str, list[SqliteShard]] = {}
         # server_id -> owning shard, for explicit cross-shard re-sync de-duplication.
-        self._server_shard: dict[str, str] = {}
+        self._server_shard: dict[tuple[str, str], str] = {}
         for shard in shards:
             for username in shard.usernames():
                 self._usernames.setdefault(username, []).append(shard)
@@ -437,10 +453,11 @@ class ContactStore:
             server = row.get("serverId", "0")
             shard = row.get("shardId", "")
             if server not in ("", "0"):
-                owner = self._server_shard.get(server)
+                identity = (str(row.get("contactId", "")), server)
+                owner = self._server_shard.get(identity)
                 if owner is not None and owner != shard:
                     continue
-                self._server_shard[server] = shard
+                self._server_shard[identity] = shard
             kept.append(row)
         return kept
 
@@ -513,10 +530,12 @@ class ContactStore:
     ) -> tuple[list[dict], tuple[int, str, int] | None, bool]:
         contact_id = self.contact_id_for(username)
         # Fetch one extra row per shard so a full page can still detect whether more follows.
-        per_shard = [
-            shard.iter_keyset(username, contact_id, cutoff_ms, cursor, limit + 1)
-            for shard in self._shards_for(username)
-        ]
+        seen_counts: dict[str, int] = {}
+        def counted(shard):
+            for row in shard.iter_keyset(username, contact_id, cutoff_ms, cursor, limit + 1):
+                seen_counts[shard.shard_id] = seen_counts.get(shard.shard_id, 0) + 1
+                yield row
+        per_shard = [counted(shard) for shard in self._shards_for(username)]
         merged = heapq.merge(
             *per_shard,
             key=lambda row: (int(row["sortSeq"]), str(row["shardId"]), int(row["localId"])),
@@ -528,16 +547,23 @@ class ContactStore:
             server = row.get("serverId", "0")
             shard_id = str(row["shardId"])
             if server not in ("", "0"):
-                owner = self._server_shard.get(server)
+                identity = (contact_id, server)
+                owner = self._server_shard.get(identity)
                 if owner is not None and owner != shard_id:
+                    last_key = (int(row["sortSeq"]), shard_id, int(row["localId"]))
                     continue
-                self._server_shard[server] = shard_id
+                self._server_shard[identity] = shard_id
             if len(rows) >= limit:
                 following = row
                 break
             rows.append(row)
             last_key = (int(row["sortSeq"]), shard_id, int(row["localId"]))
         if following is None:
+            # A shard that reached its SQL budget may have unread rows even
+            # when every fetched row was a cross-shard duplicate. Advance over
+            # those rows instead of prematurely declaring history complete.
+            if last_key is not None and any(count >= limit + 1 for count in seen_counts.values()):
+                return rows, last_key, False
             return rows, None, True
         return rows, last_key, False
 
@@ -591,11 +617,20 @@ def encode_cursor(cursor: tuple[int, str, int] | None) -> dict | None:
 def decode_cursor(raw: object) -> tuple[int, str, int] | None:
     if raw is None:
         return None
-    if not isinstance(raw, dict):
+    if not isinstance(raw, dict) or set(raw) != {"sortSeq", "shardId", "localId"}:
         raise errors.ProtocolError(errors.BAD_REQUEST, "cursor must be an object")
     try:
-        return (int(str(raw["sortSeq"])), str(raw["shardId"]), int(str(raw["localId"])))
-    except (KeyError, ValueError) as exc:
+        numbers = [raw["sortSeq"], raw["localId"]]
+        if any(type(number) not in (int, str) or
+               re.fullmatch(r"[0-9]{1,19}", str(number)) is None for number in numbers):
+            raise ValueError("invalid cursor numbers")
+        seq, local_id = map(int, numbers)
+        shard = raw["shardId"]
+        if (max(seq, local_id) > 2**63 - 1 or not isinstance(shard, str) or
+                not 1 <= len(shard) <= 256 or any(ord(char) < 32 for char in shard)):
+            raise ValueError("invalid cursor fields")
+        return seq, shard, local_id
+    except (KeyError, TypeError, ValueError) as exc:
         raise errors.ProtocolError(errors.BAD_REQUEST, "invalid cursor") from exc
 
 

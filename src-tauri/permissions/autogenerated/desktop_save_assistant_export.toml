@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-desktop-save-assistant-export"
+description = "Enables the desktop_save_assistant_export command without any pre-configured scope."
+commands.allow = ["desktop_save_assistant_export"]
+
+[[permission]]
+identifier = "deny-desktop-save-assistant-export"
+description = "Denies the desktop_save_assistant_export command without any pre-configured scope."
+commands.deny = ["desktop_save_assistant_export"]

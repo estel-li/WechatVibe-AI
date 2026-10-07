@@ -52,6 +52,7 @@ MODEL_PINS = {name: (entry["bytes"], entry["sha256"])
 if _model_manifest.get("schema") != 1 or set(MODEL_FILES) != set(MODEL_PINS):
     raise RuntimeError("pinned model manifest differs from stage allowlist")
 PUBLIC_FILES = (
+    "CHANGELOG.md", "docs/releases/1.3.0.md", "docs/production-review-1.3.0.md", "docs/competitor-review.md",
     "LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "MIGRATION.md",
     "docs/startup-diagnostics.md", "docs/review-and-performance.md",
     "docs/ai-assistant.md", "docs/analysis-models.md", "docs/verification/assistant-1.1.0/verification.json",

@@ -31,7 +31,7 @@ let connectedBrowser;
   const metrics = await page.evaluate(() => ({
     frozen: Object.isFrozen(window.desktopHost), platform: window.desktopHost.platform,
     titlebarHeight: document.querySelector(".desktop-titlebar").getBoundingClientRect().height,
-    methods: ["copyDraft", "chooseDataRoot", "chooseModelDirectory", "beginUpdate", "rollbackUpdate"].every(method => typeof window.desktopHost[method] === "function"),
+    methods: ["copyDraft", "saveAssistantExport", "chooseDataRoot", "chooseModelDirectory", "beginUpdate", "rollbackUpdate"].every(method => typeof window.desktopHost[method] === "function"),
     version: document.getElementById("aboutCurrentVersion").textContent,
   }));
   assert.equal(metrics.frozen, true); assert.equal(metrics.platform, "win32");
@@ -61,6 +61,90 @@ let connectedBrowser;
   await page.locator("#navChat").click();
   await page.waitForFunction(() => document.getElementById("chatView").classList.contains("active"));
   passed("Conversation selection, sidebar switching, chat and persona navigation");
+  await page.keyboard.press("Control+k");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "searchInput");
+  await page.locator("#searchInput").fill("synthetic");
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.id), "synthetic-a");
+  await page.keyboard.press("End");
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.id), "synthetic-b");
+  await page.keyboard.press("Enter");
+  assert.equal(await page.locator("#chatTitle").textContent(), "测试会话 B");
+  await page.keyboard.press("Alt+ArrowUp");
+  assert.equal(await page.locator("#chatTitle").textContent(), "测试会话 A");
+  await page.keyboard.press("Alt+ArrowDown");
+  assert.equal(await page.locator("#chatTitle").textContent(), "测试会话 B");
+  await page.keyboard.press("Control+k");
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator("#searchInput").inputValue(), "");
+  await page.evaluate(() => { chatState.sessions.get("synthetic-a").unreadCount = 4; renderSessions(); });
+  await page.locator("#btnSessionsUnread").click();
+  assert.equal(await page.locator("#sessionList .session-item").count(), 1);
+  assert.equal(await page.locator("#sessionList .session-item").getAttribute("aria-label"), "测试会话 A，4 条未读");
+  assert.equal(await page.locator("#chatTitle").textContent(), "测试会话 B");
+  await page.locator("#sessionList .session-item").click();
+  assert.equal(await page.locator("#sessionList .session-item").count(), 0);
+  await page.locator("#sessionList button").click();
+  assert.equal(await page.locator("#sessionList .session-item").count(), 2);
+  passed("Ctrl+K, arrow/Home/End/Enter navigation, Alt conversation switching, Escape search reset and unread filtering");
+  let historyRequests = 0;
+  await page.route("**/api/history/search?*", async route => {
+    historyRequests++;
+    const query = new URL(route.request().url()).searchParams;
+    if (query.has("before") && historyRequests === 2) return route.fulfill({ status: 503, json: { error: "synthetic-offline" } });
+    const more = !query.has("before");
+    await route.fulfill({ json: { account: "synthetic-ui-verification", user: "synthetic-a", messages: [{ id: "synthetic-history", historyCursor: "history-hit", side: "other", time: 1760000000000, text: "x".repeat(600) + "<img src=x>needle & literal" }], hasMore: more, nextCursor: more ? "history-next" : null } });
+  });
+  await page.locator("#navPersona").click();
+  await page.keyboard.press("Control+f");
+  assert.equal(await page.locator("#chatView").evaluate(node => node.classList.contains("active")), true);
+  assert.equal(await page.evaluate(() => document.activeElement.id), "historyKeyword");
+  await page.locator("#historyKeyword").fill("needle");
+  await page.locator("#btnRunHistorySearch").click();
+  await page.waitForFunction(() => document.querySelectorAll("#historySearchResults .history-result").length === 1);
+  assert.equal(await page.locator(".history-match").textContent(), "needle");
+  assert.equal(await page.locator("#historySearchResults img").count(), 0);
+  await page.locator("#btnHistoryNextResults").click();
+  await page.locator("#btnRetryHistorySearch").waitFor({ state: "visible" });
+  assert.equal(await page.locator("#historySearchResults .history-result").count(), 1);
+  await page.locator("#btnRetryHistorySearch").click();
+  await page.waitForFunction(() => document.getElementById("historySearchStatus").textContent.includes("第 2 页"));
+  await page.locator("#btnHistoryPrevResults").click();
+  assert.equal(historyRequests, 3);
+  await screenshot("ui-review-history-highlights");
+  await page.keyboard.press("Escape");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "btnChatHistory");
+  await page.unroute("**/api/history/search?*");
+  passed("Ctrl+F history search, safe match snippets, failed-page retry, cached back navigation and focus restoration");
+
+  const savedMessagesForLatest = await page.evaluate(() => {
+    const saved = chatState.messages;
+    renderMessages(Array.from({ length: 80 }, (_, index) => ({ id: `latest-${index}`, side: "other", kind: "text", time: 1760000000000 + index * 1000, text: `最新消息按钮验证 ${index}` })));
+    return saved;
+  });
+  await page.waitForTimeout(80);
+  await page.locator("#chatMessages").evaluate(node => { node.scrollTop = 0; });
+  await page.locator("#btnScrollLatest").waitFor({ state: "visible" });
+  await page.locator("#navPersona").click();
+  await page.keyboard.press("Alt+End");
+  assert.equal(await page.locator("#chatView").evaluate(node => node.classList.contains("active")), true);
+  await page.waitForFunction(() => { const node = document.getElementById("chatMessages"); return node.scrollHeight - node.clientHeight - node.scrollTop < 2; });
+  await page.evaluate(saved => renderMessages(saved), savedMessagesForLatest);
+  passed("Scrolled conversations reveal latest-message action and Alt+End returns to the bottom");
+  await page.setViewportSize({ width: 720, height: 520 });
+  await page.evaluate(() => { settingsState.settings.zoom = "1.5"; applySettings(); });
+  const chatSmall = await page.evaluate(() => {
+    const ids = ["btnAISummary", "btnAIReply", "btnSend", "btnChatHistory", "btnSessionsUnread", "btnAnalysisModelSettings"];
+    return ids.map(id => { const rect = document.getElementById(id).getBoundingClientRect(); return { id, x: rect.x, y: rect.y, right: rect.right, bottom: rect.bottom }; });
+  });
+  record.smallChatViewport = chatSmall;
+  assert.ok(await page.locator("#chatMessages").evaluate(node => node.getBoundingClientRect().height) >= 80, "Small zoom retains a usable message-reading area");
+  await screenshot("ui-review-chat-small-150-percent");
+  for (const bounds of chatSmall) assert.ok(bounds.x >= 0 && bounds.y >= 0 && bounds.right <= 721 && bounds.bottom <= 521, `Small zoom clips ${bounds.id}: ${JSON.stringify(bounds)}`);
+  await page.evaluate(() => { settingsState.settings.zoom = "1.0"; applySettings(); });
+  const smallCdp = await page.context().newCDPSession(page);
+  await smallCdp.send("Emulation.clearDeviceMetricsOverride"); await smallCdp.detach();
+  passed("Small 720×520 chat at 150% zoom keeps search, AI controls and copy action reachable");
   const renderer = await page.evaluate(() => {
     const saved = chatState.messages;
     const base = Array.from({ length: 80 }, (_, index) => ({ id: `synthetic-perf-${index}`,
@@ -316,6 +400,11 @@ let connectedBrowser;
     const fixtureInfo = JSON.parse(process.env.WECHATVIBE_SMOKE_AI_FIXTURE);
     assert.equal(fixtureInfo.status, "READY");
     const stats = async () => (await fetch(fixtureInfo.statsUrl)).json();
+    const jobRequests = [];
+    page.on("request", request => {
+      if (request.method() === "POST" && new URL(request.url()).pathname === "/api/assistant/jobs")
+        jobRequests.push(request.postDataJSON());
+    });
     const setDelay = async delayMs => fetch(fixtureInfo.assistantUrl + "/__fixture__/delay", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delayMs }) });
     const completed = async () => page.waitForFunction(() =>
@@ -371,6 +460,14 @@ let connectedBrowser;
     assert.equal(new Set(allIds).size, fixtureInfo.expectedAllCount);
     assert.match(await page.locator("#assistantJobStatus").textContent(), /1305 条消息/);
     assert.ok(allRequests.some(row => row.hasEarliestMarker));
+    const allMetadata = await page.locator("#assistantResultMeta").textContent();
+    assert.match(allMetadata, /模型：synthetic-model/);
+    assert.match(allMetadata, /范围：全部对话/);
+    assert.match(allMetadata, /完整覆盖 1305 条 \/ \d+ 个来源片段/);
+    const expectedUsage = await page.evaluate(calls => ({ input: (calls * 10).toLocaleString(), output: (calls * 5).toLocaleString() }), allRequests.length);
+    assert.ok(allMetadata.includes(`已报告 token：输入 ${expectedUsage.input} / 输出 ${expectedUsage.output}`));
+    assert.ok(allMetadata.includes(`模型调用 ${allRequests.length}/${allRequests.length}`));
+    assert.equal(await page.locator("#assistantResultMeta").getAttribute("aria-live"), null);
     await screenshot("08-assistant-all-summary");
     passed("Native AI summary sends all 1305 history messages including unseen earliest records to the real HTTP/Python/Node stack");
     passed("Native first-map output truncation recovers once using the complete original batch without missing or duplicating history");
@@ -383,15 +480,35 @@ let connectedBrowser;
     await page.locator("#assistantSummaryTo").fill(dates.to);
     const beforeTime = (await stats()).requestCount;
     await page.locator("#btnAssistantSummary").click(); await completed();
-    const timeIds = (await stats()).requests.slice(beforeTime).filter(row => row.phase === "map" || row.phase === "summary").flatMap(row => row.sourceIds);
+    const timeRequests = (await stats()).requests.slice(beforeTime);
+    const timeIds = timeRequests.filter(row => row.phase === "map" || row.phase === "summary").flatMap(row => row.sourceIds);
     assert.equal(timeIds.length, fixtureInfo.expectedTimeCount);
     assert.match(await page.locator("#assistantJobStatus").textContent(), /10 条消息/);
+    const savedSummary = await page.locator("#assistantResultText").textContent();
+    const expectedTimeTokens = `已报告 token：输入 ${timeRequests.length * 10} / 输出 ${timeRequests.length * 5}`;
+    assert.ok((await page.locator("#assistantResultMeta").textContent()).includes(expectedTimeTokens));
     await screenshot("09-assistant-time-summary");
     passed("Native AI summary applies exact inclusive start/end time to 10 selected messages");
     await page.locator("#assistantTabReply").click();
     await quickRanges("Reply");
     passed("Native summary and reply shortcuts select the last day, week and calendar month with second precision");
     await page.locator("#assistantReplyRange").selectOption("recent");
+    const styleIds = await page.locator("#assistantReplyStyle option").evaluateAll(nodes => nodes.map(node => node.value));
+    assert.deepEqual(styleIds, ["natural", "concise", "warm", "professional", "playful", "boundaries"]);
+    const beforeStyle = (await stats()).requestCount;
+    await page.locator("#assistantReplyStyle").selectOption("warm");
+    await page.locator("#assistantReplyInstructions").fill("STYLE_USER_PRIORITY：不做未经确认的承诺。");
+    assert.equal((await stats()).requestCount, beforeStyle, "Selecting a reply style alone must never call AI");
+    const relationshipPrompt = await page.locator("#assistantReplyPrompt").inputValue();
+    await page.locator("#btnAssistantReply").click(); await completed();
+    assert.equal(jobRequests.at(-1).systemPrompt, relationshipPrompt);
+    assert.match(jobRequests.at(-1).instructions, /本次回复语气：回复温暖真诚/);
+    assert.match(jobRequests.at(-1).instructions, /我的表达要求（优先）：STYLE_USER_PRIORITY/);
+    assert.equal(Object.hasOwn(jobRequests.at(-1), "apiKey"), false);
+    assert.match(await page.locator("#assistantResultMeta").textContent(), /语气：温暖真诚/);
+    await page.locator("#assistantReplyStyle").selectOption("natural");
+    await page.locator("#assistantReplyInstructions").fill("");
+    passed("Six manual reply styles reach real generation without rewriting relationship prompts or issuing a request on selection");
     const beforeRelations = (await stats()).requestCount;
     for (const relationship of ["friend", "close_friend", "colleague", "relative", "elder"]) {
       await page.locator("#assistantRelationship").selectOption(relationship);
@@ -409,6 +526,35 @@ let connectedBrowser;
     const nextDraft = await page.locator("#assistantResultText").textContent();
     assert.notEqual(nextDraft, firstDraft);
     assert.ok((await stats()).requests.some(row => row.regenerated && row.customPrompt && row.instructionsPresent));
+    const beforeTabReturn = (await stats()).requestCount;
+    await page.locator("#assistantTabSummary").click();
+    assert.equal(await page.locator("#assistantResultText").textContent(), savedSummary);
+    assert.match(await page.locator("#assistantResultMeta").textContent(), /完整覆盖 10 条/);
+    await page.locator("#assistantTabReply").click();
+    assert.equal(await page.locator("#assistantResultText").textContent(), nextDraft);
+    assert.equal((await stats()).requestCount, beforeTabReturn);
+    passed("Native summary and reply retain separate completed results across tab changes without extra AI calls");
+    let nativeExport = false;
+    if (process.env.WECHATVIBE_SMOKE_EXPORT_PATH) {
+      const exportPath = path.resolve(process.env.WECHATVIBE_SMOKE_EXPORT_PATH);
+      assert.equal(path.dirname(exportPath), path.resolve(output), "Native export verification stays in its output directory");
+      assert.equal(fs.existsSync(exportPath), false, "Native export must create a new verification file");
+      await page.locator("#assistantTabSummary").click();
+      await page.locator("#btnAssistantExportMarkdown").click();
+      console.log("NATIVE_EXPORT_DIALOG_READY " + exportPath);
+      await page.waitForFunction(() => document.getElementById("assistantJobStatus").textContent === "结果已保存到本地。", null, { timeout: 90000 });
+      const exported = fs.readFileSync(exportPath, "utf8");
+      assert.ok(exported.includes(savedSummary));
+      assert.match(exported, /测试会话 A/);
+      assert.match(exported, /模型：synthetic-model/);
+      assert.ok(exported.includes(expectedTimeTokens), "Export usage matches all actual provider calls for this summary");
+      assert.match(exported, /完整覆盖 10 条/);
+      assert.doesNotMatch(exported, /EARLIEST_FULL_HISTORY_MARKER|TIMED_SUBSET_MARKER|synthetic-a-history-|apiKey|systemPrompt|synthetic-ui-verification/);
+      assert.equal((await stats()).requestCount, beforeTabReturn);
+      nativeExport = true;
+      passed("Native save dialog creates verified Chinese Markdown result with model/coverage/token metadata and no source-history or credential fields");
+      await page.locator("#assistantTabReply").click();
+    }
     await screenshot("10-assistant-custom-reply");
     await page.locator("#btnAssistantCopy").click();
     await page.waitForFunction(() => document.getElementById("assistantJobStatus").textContent === "结果已复制。");
@@ -444,6 +590,22 @@ let connectedBrowser;
     assert.equal(await page.locator("#assistantModal").evaluate(node => node.contains(document.activeElement)), true);
     assert.equal(await page.locator("#assistantRelationship option").count(), 6);
     assert.equal(await page.locator("#assistantRelationship").inputValue(), "custom");
+    await page.locator("#btnAssistantReply").click(); await completed();
+    const exportBounds = {};
+    for (const id of ["btnAssistantExportMarkdown", "btnAssistantExportText"]) {
+      await page.locator(`#${id}`).scrollIntoViewIfNeeded();
+      await page.locator(`#${id}`).focus();
+      const rectangle = await page.locator(`#${id}`).evaluate(node => {
+        const box = node.getBoundingClientRect();
+        return { x: box.x, y: box.y, right: box.right, bottom: box.bottom, width: innerWidth, height: innerHeight,
+          focused: document.activeElement === node, disabled: node.disabled };
+      });
+      assert.equal(rectangle.focused, true); assert.equal(rectangle.disabled, false);
+      assert.ok(rectangle.x >= 0 && rectangle.y >= 0 && rectangle.right <= rectangle.width + 1 && rectangle.bottom <= rectangle.height + 1);
+      exportBounds[id] = rectangle;
+    }
+    await screenshot("15-assistant-export-small-150-percent");
+    passed("Native result export buttons remain visible, enabled and keyboard reachable at 720x520 with 150 percent zoom");
     const persistedCustomPrompt = await page.locator("#assistantReplyPrompt").inputValue();
     assert.match(persistedCustomPrompt, /CUSTOM_PROMPT/);
     await page.locator("#btnAssistantSaveReplyPrompt").click();
@@ -496,6 +658,8 @@ let connectedBrowser;
       relationshipPresets: 5, customPrompt: true, regeneration: true, clipboard: true, insertDraft: true,
       quickTimeRanges: ["day", "week", "month"],
       truncatedMapRecovery: true,
+      replyStyles: styleIds, styledInstructions: true, resultMetadata: allMetadata, separateResults: true,
+      nativeExport, smallExportButtons: exportBounds,
       summaryPresets: 7, replyPresets: 6, unifiedModelSettings: true, modelDiscovery: true, connectionTestSyntheticOnly: true, promptPersistence: true, cancelAndSwitch: true, smallViewport: bounds };
     passed("Assistant prompt panels and general model settings fit 720x520 at 150 percent zoom with consistent focus");
   }

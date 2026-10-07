@@ -3,6 +3,7 @@ fn main() {
         tauri_build::AppManifest::new().commands(&[
             "desktop_set_theme",
             "desktop_copy_draft",
+            "desktop_save_assistant_export",
             "desktop_exit_app",
             "desktop_get_app_version",
             "desktop_get_model_download_state",

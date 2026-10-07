@@ -77,6 +77,32 @@ function harness(options = {}) {
 
 const ordinaryCalls = calls => calls.filter(call => call.command !== "desktop_window_action");
 
+test("assistant export uses a native picker only for valid active main-frame requests", async () => {
+  const h = harness({ invoke: async () => ({ status: "saved" }) });
+  const host = h.window.desktopHost;
+  const request = { filename: "项目复盘.md", content: "# 总结\n中文🙂", format: "md" };
+  assert.equal((await host.saveAssistantExport(request)).status, "saved");
+  assert.deepEqual(ordinaryCalls(h.calls), [{ command: "desktop_save_assistant_export", args: request }]);
+  h.calls.length = 0;
+  for (const invalid of [{ ...request, format: "exe" }, { ...request, content: " " },
+    { ...request, filename: "x".repeat(513) }, { ...request, content: "x".repeat(1_048_577) }]) {
+    await assert.rejects(host.saveAssistantExport(invalid));
+  }
+  h.navigator.userActivation.isActive = false;
+  await assert.rejects(host.saveAssistantExport(request));
+  h.navigator.userActivation.isActive = true;
+  h.window.top = {};
+  await assert.rejects(host.saveAssistantExport(request));
+  assert.deepEqual(ordinaryCalls(h.calls), []);
+});
+
+test("cancelled assistant export returns without revealing a file path", async () => {
+  const h = harness({ invoke: async () => ({ status: "cancelled" }) });
+  const result = await h.window.desktopHost.saveAssistantExport({ filename: "回复.txt", content: "你好", format: "txt" });
+  assert.equal(result.status, "cancelled");
+  assert.equal(Object.keys(result).length, 1);
+});
+
 test("native service failures are forwarded to the UI as text and malformed payloads are ignored", async () => {
   const h = harness();
   await h.settle();

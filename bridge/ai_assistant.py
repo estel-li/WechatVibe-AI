@@ -74,6 +74,15 @@ def _account(value):
     return value
 
 
+def _public_usage(value):
+    """Provider usage is optional. Only validated counts may cross to the UI."""
+    if not isinstance(value, dict):
+        return None
+    counts = {key: value[key] for key in ("inputTokens", "outputTokens")
+              if type(value.get(key)) is int and 0 <= value[key] <= 2 ** 53 - 1}
+    return counts or None
+
+
 def _official_deepseek(config, preset):
     """A custom host/model or a retired model ID cannot inherit this capacity."""
     return (preset == "deepseek" and config.get("protocol") == "chat_completions" and
@@ -349,6 +358,8 @@ class AssistantService:
             job_id = uuid.uuid4().hex
             job = {"id": job_id, "account": request["account"], "user": request["user"],
                    "kind": request["kind"], "range": request["range"], "relationship": relationship,
+                   "model": config["model"], "contextTokens": config.get("contextTokens", 32768),
+                   "startedAt": int(time.time() * 1000),
                    "status": "queued", "progress": {"phase": "reading", "completed": 0,
                    "total": 0, "messageCount": 0}, "text": "", "error": None,
                    "_scope": scope, "_cancel": threading.Event(), "_analyzer": None,
@@ -504,6 +515,10 @@ class AssistantService:
                     job["status"], job["text"] = "completed", result["text"]
                     job.pop("partialText", None)
                     job["chunkCount"] = result.get("chunkCount", 1)
+                    usage = _public_usage(result.get("usage"))
+                    if usage is not None:
+                        job["usage"] = usage
+                    job["finishedAt"] = int(time.time() * 1000)
                     job["progress"]["completed"] = job["progress"]["total"]
                     job["progress"]["completedMessages"] = len(messages)
         except Exception as exc:

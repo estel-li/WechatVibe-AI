@@ -4,12 +4,15 @@ from __future__ import annotations
 import os
 import re
 
+import zstandard
+
 from wechatauto.db import WeChatDB
 from snapshot_cache import SnapshotCacheMixin
 
 
 ANCHOR_DATABASES = frozenset(("session/session.db", "contact/contact.db"))
 MESSAGE_DATABASE = re.compile(r"message/message_\d+\.db\Z")
+MAX_MESSAGE_BYTES = 8 * 1024 * 1024
 
 
 def database_groups(rels):
@@ -49,6 +52,25 @@ class IncompleteKeyCache(RuntimeError):
 
 
 class CacheOnlyWeChatDB(SnapshotCacheMixin, WeChatDB):
+    @staticmethod
+    def _friendly_content(content, message_type):
+        """Bound decompression before delegating ordinary envelope decoding."""
+        placeholder = f"[{message_type}]"
+        if not isinstance(content, bytes) or len(content) > MAX_MESSAGE_BYTES:
+            return placeholder
+        if content[:4] == b"\x28\xb5\x2f\xfd":
+            try:
+                with zstandard.ZstdDecompressor().stream_reader(content) as reader:
+                    expanded = reader.read(MAX_MESSAGE_BYTES + 1)
+                if len(expanded) > MAX_MESSAGE_BYTES:
+                    return placeholder
+                # Keep the reader's previous treatment of compressed text,
+                # including exact line breaks and surrounding whitespace.
+                return expanded.decode("utf-8") or placeholder
+            except (zstandard.ZstdError, UnicodeError):
+                return placeholder
+        return WeChatDB._friendly_content(content, message_type)
+
     def get_self_info(self):
         for rel, path, _ in self._db_files:
             if rel != self.anchor_rels["contact"]:

@@ -71,6 +71,12 @@
           return Promise.resolve(false);
         return invoke("desktop_copy_draft", { value });
       },
+      saveAssistantExport({ filename, content, format } = {}) {
+        if (!isTop() || !isActive() || typeof filename !== "string" || filename.length > 512 ||
+            typeof content !== "string" || !content.trim() || content.length > 1_048_576 ||
+            !["md", "txt"].includes(format)) return Promise.reject(new Error("导出请求无效"));
+        return invoke("desktop_save_assistant_export", { filename, content, format });
+      },
       exitApp() {
         return isTop() ? invoke("desktop_exit_app") : Promise.resolve(false);
       },

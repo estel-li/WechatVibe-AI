@@ -193,6 +193,13 @@ class NodeAnalysis:
                 reply = json.loads(line)
             except ValueError:
                 continue
+            if not isinstance(reply, dict):
+                continue
+            reply_id = reply.get("id")
+            if reply_id is not None and (type(reply_id) is not int or reply_id < 1):
+                # stdout may contain accidental JSON logs. A malformed envelope
+                # must not kill this reader and strand every pending request.
+                continue
             stream_callback = None
             stream_delta = reply.get("streamDelta")
             progress_callback = None
@@ -201,7 +208,10 @@ class NodeAnalysis:
                 if self.process is not process:
                     continue
                 if "ready" in reply:
-                    self.model = reply.get("model") or {"state": "error", "message": "model status missing"}
+                    status = reply.get("model")
+                    self.model = (status if isinstance(status, dict) and
+                                  status.get("state") in ("ready", "loading", "missing", "error") else
+                                  {"state": "error", "message": "model status missing"})
                     self.running_version = reply.get("analysisVersion")
                     if self.running_version != self.version:
                         self.model = {"state": "error", "message": "analysis version changed; restart service"}

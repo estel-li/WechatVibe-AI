@@ -20,6 +20,7 @@ import hashlib
 import json
 import os
 import re
+import time
 import uuid
 
 from . import errors
@@ -28,7 +29,7 @@ ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 
 
 def _safe_id(value: str, what: str) -> str:
-    if not isinstance(value, str) or not ID_PATTERN.match(value):
+    if not isinstance(value, str) or not ID_PATTERN.fullmatch(value):
         raise errors.ProtocolError(errors.SNAPSHOT_ERROR, f"invalid {what} id")
     return value
 
@@ -57,10 +58,23 @@ class SnapshotStore:
         )
 
     def _write_atomic(self, path: str, data: bytes) -> None:
-        temporary = f"{path}.tmp"
-        with open(temporary, "wb") as handle:
-            handle.write(data)
-        os.replace(temporary, path)
+        temporary = f"{path}.tmp-{uuid.uuid4().hex}"
+        try:
+            with open(temporary, "xb") as handle:
+                handle.write(data)
+            # Windows may briefly deny replacement while another atomic writer
+            # switches the same destination. Retry only that bounded transient.
+            for attempt in range(4):
+                try:
+                    os.replace(temporary, path)
+                    break
+                except PermissionError:
+                    if attempt == 3:
+                        raise
+                    time.sleep(.01 * 2**attempt)
+        finally:
+            if os.path.exists(temporary):
+                os.remove(temporary)
 
     # -- datasets ----------------------------------------------------------
 

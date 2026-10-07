@@ -303,11 +303,21 @@ class Backend:
             self.closing = True
         # API insight jobs outlive their HTTP request. Drain them before
         # touching this account's SQLite file.
-        self._close_assistant()
-        with self.api_condition:
-            self._cancel_api_source_work_locked()
-            if not self.api_tasks.wait_for_idle(200):
-                raise RuntimeError("API insight requests did not finish")
+        try:
+            self._close_assistant()
+            with self.api_condition:
+                self._cancel_api_source_work_locked()
+                if not self.api_tasks.wait_for_idle(200):
+                    raise RuntimeError("API insight requests did not finish")
+        except Exception:
+            # AccountAPI has not received a successful pause yet. No local
+            # workers or files have been stopped/removed, so leave this bridge
+            # usable after a failed preparation instead of permanently closing it.
+            with self.request_condition:
+                self.closing = False
+                self.request_condition.notify_all()
+            self._ensure_load_monitor()
+            raise
         self._stop_workers()
         with self.request_condition:
             if not self.request_condition.wait_for(lambda: self.active_requests == 0, timeout=200):

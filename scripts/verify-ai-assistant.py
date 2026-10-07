@@ -23,6 +23,8 @@ def main():
     parser.add_argument("--exe", type=Path,
                         default=ROOT / "dist/WechatVibe-AI-1.1.0/WechatVibe.exe")
     parser.add_argument("--output", type=Path, default=ROOT / ".local/assistant-verification")
+    parser.add_argument("--native-export", action="store_true",
+                        help="Pause for the native save dialog and verify the result in the output directory")
     args = parser.parse_args()
     executable = args.exe.resolve()
     client = executable.parent / "client"
@@ -56,7 +58,8 @@ def main():
             result = subprocess.run(
                 [sys.executable, "scripts/verify-tauri-ui.py", "--exe", str(executable),
                  "--crash-worker", "--ui-dir", str(client / "chatui"),
-                 "--output", str(output / "native-ui")], cwd=ROOT, env=env)
+                 "--output", str(output / "native-ui"),
+                 *(["--native-export"] if args.native_export else [])], cwd=ROOT, env=env)
             with urllib.request.urlopen(ready["statsUrl"], timeout=10) as response:
                 stats = json.load(response)
             (output / "provider-stats.json").write_text(

@@ -82,6 +82,9 @@ export class ModelConnectorError extends Error {
 const REQUEST_TIMEOUT_MS: number | undefined = undefined;
 const LIST_TIMEOUT_MS = 12_000;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
+// SSE includes per-token envelopes and reasoning events. Bound wire traffic
+// without buffering the entire response or delaying incremental text.
+const MAX_STREAM_RESPONSE_BYTES = 16 * 1024 * 1024;
 const MAX_PROMPT_BYTES = 3 * 1024 * 1024;
 const MAX_MODELS = 200;
 const NO_KEY = "local-no-key";
@@ -186,6 +189,48 @@ async function boundedResponse(response: Response): Promise<Response> {
   });
 }
 
+async function boundedStreamResponse(response: Response): Promise<Response> {
+  if (Number(response.headers.get("content-length")) > MAX_STREAM_RESPONSE_BYTES) {
+    await response.body?.cancel();
+    throw new ModelConnectorError("response-too-large", "服务响应超过大小限制");
+  }
+  if (!response.body) return response;
+  const reader = response.body.getReader();
+  let size = 0;
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        if (done) {
+          reader.releaseLock();
+          controller.close();
+          return;
+        }
+        size += value.byteLength;
+        if (size > MAX_STREAM_RESPONSE_BYTES) {
+          const error = new ModelConnectorError("response-too-large", "服务响应超过大小限制");
+          controller.error(error);
+          await reader.cancel(error);
+          reader.releaseLock();
+          return;
+        }
+        controller.enqueue(value);
+      } catch (error) {
+        reader.releaseLock();
+        controller.error(error);
+      }
+    },
+    async cancel(reason) {
+      try { await reader.cancel(reason); }
+      finally { reader.releaseLock(); }
+    },
+  });
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
+  headers.delete("content-encoding");
+  return new Response(body, { status: response.status, statusText: response.statusText, headers });
+}
+
 function guardedFetch(config: SafeConfig, callerSignal?: AbortSignal,
                       timeoutMs = REQUEST_TIMEOUT_MS, bounded = true,
                       streamProtocol?: "responses" | "chat_completions"): typeof fetch {
@@ -205,10 +250,11 @@ function guardedFetch(config: SafeConfig, callerSignal?: AbortSignal,
       // Some compatible gateways ignore stream:true but still return a complete
       // JSON completion. Turn that one body into a local SSE envelope so the
       // caller observes one request and the normal incremental parser can run.
-      const raw = await response.text();
+      const raw = await (await boundedResponse(response)).text();
       const headers = new Headers(response.headers);
       headers.set("content-type", "text/event-stream");
       headers.delete("content-length");
+      headers.delete("content-encoding");
       let body = raw;
       try {
         const parsed = JSON.parse(raw) as Record<string, any>;
@@ -241,7 +287,8 @@ function guardedFetch(config: SafeConfig, callerSignal?: AbortSignal,
       }
       return new Response(body, { status: response.status, statusText: response.statusText, headers });
     }
-    return bounded ? boundedResponse(response) : response;
+    const eventStream = /text\/event-stream|application\/x-ndjson/iu.test(response.headers.get("content-type") || "");
+    return bounded || !response.ok || !eventStream ? boundedResponse(response) : boundedStreamResponse(response);
   };
 }
 

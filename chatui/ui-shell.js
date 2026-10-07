@@ -80,4 +80,75 @@
   }
   syncTabs();
   sync();
+
+  const sessionList = document.getElementById("sessionList");
+  const search = document.getElementById("searchInput");
+  const rows = () => [...sessionList.querySelectorAll(".session-item")];
+  function focusRow(row) {
+    if (!row) return;
+    for (const item of rows()) item.tabIndex = item === row ? 0 : -1;
+    row.focus({ preventScroll: true });
+    row.scrollIntoView({ block: "nearest" });
+  }
+  sessionList.addEventListener("keydown", event => {
+    if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey ||
+        !["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+    const items = rows(), row = event.target.closest(".session-item");
+    if (!row || !items.length) return;
+    event.preventDefault();
+    const index = items.indexOf(row);
+    const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 :
+      Math.max(0, Math.min(items.length - 1, index + (event.key === "ArrowDown" ? 1 : -1)));
+    focusRow(items[next]);
+  });
+  search.addEventListener("keydown", event => {
+    if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.key === "ArrowDown" || event.key === "Enter") {
+      const row = rows()[0];
+      if (!row) return;
+      event.preventDefault();
+      focusRow(row);
+      if (event.key === "Enter") row.click();
+    } else if (event.key === "Escape" && search.value) {
+      event.preventDefault();
+      event.stopPropagation();
+      search.value = "";
+      search.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  });
+  document.addEventListener("keydown", event => {
+    if (event.defaultPrevented || event.isComposing || assistantOpen() || active ||
+        document.getElementById("appWindow").hasAttribute("inert")) return;
+    const key = event.key.toLowerCase();
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && key === "k") {
+      event.preventDefault();
+      search.focus();
+      search.select();
+    } else if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && key === "f") {
+      const history = document.getElementById("btnChatHistory");
+      if (history.disabled) return;
+      event.preventDefault();
+      if (!document.getElementById("chatView").classList.contains("active")) document.getElementById("navChat").click();
+      if (document.getElementById("historySearchPanel").hidden) history.click();
+      else document.getElementById("historyKeyword").focus();
+    } else if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey &&
+        ["ArrowUp", "ArrowDown"].includes(event.key)) {
+      const items = rows(), index = items.findIndex(row => row.classList.contains("active"));
+      const next = items[index < 0 ? 0 : Math.max(0, Math.min(items.length - 1, index + (event.key === "ArrowDown" ? 1 : -1)))];
+      if (!next) return;
+      event.preventDefault();
+      focusRow(next);
+      next.click();
+    } else if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey && event.key === "End") {
+      const latest = document.getElementById("btnReturnLatest"), scroll = document.getElementById("btnScrollLatest");
+      const button = !latest.hidden ? latest : !scroll.hidden ? scroll : null;
+      if (!button) return;
+      event.preventDefault();
+      if (!document.getElementById("chatView").classList.contains("active")) document.getElementById("navChat").click();
+      button.click();
+    }
+  });
+  const emoji = document.getElementById("emojiPopover");
+  new MutationObserver(() => document.getElementById("btnEmoji").setAttribute("aria-expanded", String(emoji.classList.contains("show"))))
+    .observe(emoji, { attributes: true, attributeFilter: ["class"] });
 })();

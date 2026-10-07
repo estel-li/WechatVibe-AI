@@ -7,6 +7,7 @@ import mimetypes
 import os
 import re
 import threading
+import time
 from contextlib import nullcontext
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -23,6 +24,8 @@ from ai_assistant import AssistantRequestError
 CHATUI = ROOT / "chatui"
 CONTROL_TOKEN_ENV = "WECHATVIBE_CONTROL_TOKEN"
 CONTROL_TOKEN_HEADER = "X-WechatVibe-Control-Token"
+REQUEST_READ_TIMEOUT = 10
+REJECT_DRAIN_LIMIT = 2 * 1024 * 1024
 
 
 def app_version():
@@ -54,7 +57,8 @@ def static_content_type(name):
 def integer(value, default, maximum):
     if value is None:
         return default
-    if isinstance(value, bool) or not isinstance(value, (int, str)) or not str(value).isdigit():
+    if (isinstance(value, bool) or not isinstance(value, (int, str)) or
+            re.fullmatch(r"[0-9]{1,10}", str(value)) is None):
         raise ValueError("invalid limit")
     result = int(value)
     if not 1 <= result <= maximum:
@@ -76,6 +80,13 @@ def request_id_value(value):
 
 def make_handler(backend, accounts=None, control_token=None):
     class Handler(BaseHTTPRequestHandler):
+        def setup(self):
+            super().setup()
+            # A client that stops partway through a request must not retain a
+            # request lease (and block account cleanup/shutdown) indefinitely.
+            self.connection.settimeout(REQUEST_READ_TIMEOUT)
+            self._body_consumed = False
+
         def log_message(self, *_args):
             pass
 
@@ -84,9 +95,75 @@ def make_handler(backend, accounts=None, control_token=None):
             hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
             origins = {f"http://{host}" for host in hosts}
             origin = self.headers.get("Origin")
-            return (self.headers.get("Host") in hosts and
+            return (len(self.headers.get_all("Host", [])) == 1 and
+                    len(self.headers.get_all("Origin", [])) <= 1 and
+                    self.headers.get("Host") in hosts and
                     (origin is None or origin in origins) and
                     self.path.startswith("/") and not self.path.startswith("//"))
+
+        def discard_body(self):
+            """Drain a bounded rejected body before closing the HTTP/1.0 socket.
+
+            Closing with unread bytes resets the connection on Windows, hiding
+            the useful JSON error from clients still transmitting a larger body.
+            Ambiguous framing is never consumed and oversized inputs remain bounded.
+            """
+            if self._body_consumed:
+                return
+            self._body_consumed = True
+            lengths = self.headers.get_all("Content-Length", [])
+            if (len(lengths) != 1 or self.headers.get_all("Transfer-Encoding") or
+                    re.fullmatch(r"[0-9]{1,10}", lengths[0]) is None):
+                return
+            try:
+                self.read_body(min(int(lengths[0]), REJECT_DRAIN_LIMIT), discard=True)
+            except (TimeoutError, OSError):
+                self.close_connection = True
+
+        def read_body(self, length, *, discard=False):
+            remaining, chunks = length, []
+            deadline = time.monotonic() + REQUEST_READ_TIMEOUT
+            try:
+                while remaining:
+                    timeout = deadline - time.monotonic()
+                    if timeout <= 0:
+                        raise TimeoutError("request body deadline exceeded")
+                    self.connection.settimeout(timeout)
+                    # read1 returns after one underlying read; read(length)
+                    # internally loops and lets a trickling sender renew its
+                    # socket timeout forever without completing the request.
+                    chunk = self.rfile.read1(min(remaining, 65536))
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+                    if not discard:
+                        chunks.append(chunk)
+            finally:
+                self.connection.settimeout(REQUEST_READ_TIMEOUT)
+            return b"" if discard else b"".join(chunks)
+
+        def reject(self, status, body):
+            self.discard_body()
+            return self.send(status, body)
+
+        def json_body(self, maximum):
+            lengths = self.headers.get_all("Content-Length", [])
+            if len(lengths) != 1 or self.headers.get_all("Transfer-Encoding"):
+                raise ValueError("invalid body framing")
+            try:
+                length = integer(lengths[0], None, maximum)
+            except ValueError:
+                self.discard_body()
+                raise
+            try:
+                raw = self.read_body(length)
+            except (TimeoutError, OSError) as exc:
+                self._body_consumed = True
+                raise ValueError("incomplete request body") from exc
+            self._body_consumed = True
+            if len(raw) != length:
+                raise ValueError("incomplete request body")
+            return json.loads(raw.decode("utf-8"))
 
         def send(self, status, body, content_type="application/json; charset=utf-8"):
             payload = body if isinstance(body, bytes) else json.dumps(body, ensure_ascii=False).encode("utf-8")
@@ -98,13 +175,16 @@ def make_handler(backend, accounts=None, control_token=None):
                 self.send_header("X-Content-Type-Options", "nosniff")
                 self.end_headers()
                 self.wfile.write(payload)
-            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError):
                 # Switching chats cancels obsolete requests. There is no client left to
                 # receive a second 503 response; retain the successfully read result.
                 self.close_connection = True
 
         def query(self, path):
-            return {key: values[0] for key, values in parse_qs(path.query, keep_blank_values=True).items()}
+            query = parse_qs(path.query, keep_blank_values=True, max_num_fields=64)
+            if any(len(values) != 1 for values in query.values()):
+                raise ValueError("duplicate query parameter")
+            return {key: values[0] for key, values in query.items()}
 
         def do_GET(self):
             lease = getattr(backend, "request_lease", None)
@@ -212,7 +292,7 @@ def make_handler(backend, accounts=None, control_token=None):
             except Exception as exc:
                 if parsed.path.startswith("/api/assistant/"):
                     return self.send(503, {"error": "assistant-unavailable", "message": "AI 助手暂不可用，请重试"})
-                return self.send(503, {"error": type(exc).__name__, "message": str(exc)[:200]})
+                return self.send(503, {"error": type(exc).__name__, "message": "本地服务暂不可用，请稍后重试"})
 
         def do_POST(self):
             lease = getattr(backend, "request_lease", None)
@@ -226,7 +306,7 @@ def make_handler(backend, accounts=None, control_token=None):
 
         def _do_POST(self):
             if not self.trusted_request():
-                return self.send(403, {"error": "forbidden"})
+                return self.reject(403, {"error": "forbidden"})
             endpoint = urlsplit(self.path).path
             if endpoint == "/api/control/shutdown":
                 supplied = self.headers.get(CONTROL_TOKEN_HEADER, "")
@@ -234,9 +314,9 @@ def make_handler(backend, accounts=None, control_token=None):
                         not isinstance(control_token, str) or
                         re.fullmatch(r"[0-9a-f]{64}", control_token) is None or
                         not hmac.compare_digest(supplied, control_token)):
-                    return self.send(403, {"error": "forbidden"})
+                    return self.reject(403, {"error": "forbidden"})
                 if self.path != endpoint or self.headers.get("Content-Length") != "0":
-                    return self.send(400, {"error": "invalid control request"})
+                    return self.reject(400, {"error": "invalid control request"})
                 self.send(202, {"stopping": True})
                 threading.Thread(target=self.server.shutdown, daemon=True).start()
                 return
@@ -251,18 +331,14 @@ def make_handler(backend, accounts=None, control_token=None):
                                  "/api/data-root", "/api/data-root/clear",
                                  "/api/analysis-workers",
                                  *model_endpoints, *assistant_endpoints):
-                return self.send(404, {"error": "not found"})
+                return self.reject(404, {"error": "not found"})
             content_type = [part.strip().lower() for part in self.headers.get("Content-Type", "").split(";")]
             if content_type[0] != "application/json" or any(part != "charset=utf-8" for part in content_type[1:]):
-                return self.send(415, {"error": "application/json required"})
+                return self.reject(415, {"error": "application/json required"})
             echo = {}
             try:
-                length = integer(self.headers.get("Content-Length"), None,
-                                 1048576 if endpoint == "/api/assistant/settings" else
-                                 262144 if endpoint in assistant_endpoints else 65536)
-                if length is None:
-                    raise ValueError("body required")
-                request = json.loads(self.rfile.read(length).decode("utf-8"))
+                request = self.json_body(1048576 if endpoint == "/api/assistant/settings" else
+                                         262144 if endpoint in assistant_endpoints else 65536)
                 if not isinstance(request, dict) or "texts" in request:
                     raise ValueError("invalid request")
                 if endpoint in assistant_endpoints:
@@ -406,7 +482,7 @@ def make_handler(backend, accounts=None, control_token=None):
             except Exception as exc:
                 if endpoint.startswith("/api/assistant/"):
                     return self.send(503, {"error": "assistant-unavailable", "message": "AI 助手暂不可用，请重试"})
-                return self.send(503, {**echo, "error": type(exc).__name__, "message": str(exc)[:200]})
+                return self.send(503, {**echo, "error": type(exc).__name__, "message": "本地服务暂不可用，请稍后重试"})
 
         def do_DELETE(self):
             if not self.trusted_request():

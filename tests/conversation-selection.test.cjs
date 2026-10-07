@@ -21,7 +21,9 @@ const code = section("function renderSessions()", "async function preloadSession
 
 function node(tag = "div", className = "", textContent = "") {
   const item = { tag, className, textContent, value: "", dataset: {}, children: [],
-    listeners: {}, parent: null, hidden: false, disabled: false,
+    listeners: {}, parent: null, hidden: false, disabled: false, attributes: {},
+    setAttribute(key, value) { this.attributes[key] = String(value); },
+    getAttribute(key) { return this.attributes[key]; },
     append(...children) { for (const child of children) this.appendChild(child); },
     appendChild(child) { child.remove(); child.parent = this; this.children.push(child); return child; },
     prepend(child) { child.remove(); child.parent = this; this.children.unshift(child); },
@@ -79,7 +81,7 @@ function harness({ selected = [], messagesReady = true, sourceMode = "api" } = {
     text: (id, value) => { byId(id).textContent = value; },
     status: (container, value) => container.replaceChildren(node("div", "ui-state", value)),
     avatar: () => node("div", "avatar-frame"),
-    time: value => String(value), getVisibleUnreadCount: () => 0, markSessionAsRead() {},
+    time: value => String(value), getWatermarks: () => ({}), getVisibleUnreadCount: session => session.unreadCount || 0, markSessionAsRead() {},
     switchSession: user => { switches.push(user); },
     preloadSessionWindows: async (_account, values) => { preloads.push([...values.keys()]); },
     clearUnselectedConversation() { throw new Error("An existing selected conversation must be preserved"); },
@@ -196,4 +198,27 @@ it("adds and removes a second conversation through the existing account-scoped s
   assert.deepEqual([...h.context.chatState.selectedConversations], ["first"]);
   assert.equal(h.context.chatState.currentUser, "first");
   assert.equal(h.byId("btnAddConversation").disabled, false);
+});
+
+it("exposes one keyboard entry and keeps filtered rows reusable without losing the active chat", () => {
+  const h = harness({ selected: ["first", "second"] });
+  h.context.chatState.sessions.get("second").unreadCount = 3;
+  h.ui.renderSessions();
+  const rows = h.byId("sessionList").children;
+  assert.equal(rows[0].tag, "button");
+  assert.deepEqual(rows.map(row => row.tabIndex), [0, -1]);
+  assert.equal(rows[0].getAttribute("aria-pressed"), "true");
+  assert.equal(rows[1].getAttribute("aria-label"), "合成乙，3 条未读");
+  const unreadRow = rows[1];
+  h.context.chatState.sessionFilter = "unread";
+  h.ui.renderSessions();
+  assert.deepEqual(h.byId("sessionList").children.map(row => row.dataset.id), ["second"]);
+  assert.equal(h.byId("sessionList").children[0], unreadRow);
+  assert.equal(unreadRow.tabIndex, 0);
+  assert.equal(h.context.chatState.currentUser, "first");
+  h.context.chatState.sessions.get("second").unreadCount = 0;
+  h.ui.renderSessions();
+  assert.equal(h.byId("sessionList").children[0].children[0].textContent, "没有未读会话");
+  h.byId("sessionList").children[0].children.at(-1).click();
+  assert.equal(h.context.chatState.sessionFilter, "all");
 });

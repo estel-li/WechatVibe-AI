@@ -34,6 +34,89 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+it("stops oversized SSE traffic after delivering early text, with no paid fallback", async () => {
+  let calls = 0;
+  let pulls = 0;
+  let cancelled = false;
+  const deltas: string[] = [];
+  const encoder = new TextEncoder();
+  await withMockFetch(() => {
+    calls++;
+    return new Response(new ReadableStream({
+      pull(controller) {
+        pulls++;
+        if (pulls === 1) {
+          controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"early text"},"finish_reason":null}]}\n\n'));
+        } else {
+          // Keep-alive/reasoning envelopes count too, even with no output text.
+          controller.enqueue(encoder.encode(":" + "x".repeat(1024 * 1024) + "\n\n"));
+        }
+      },
+      cancel() { cancelled = true; },
+    }), { headers: { "content-type": "text/event-stream" } });
+  }, async () => {
+    await assert.rejects(generateStructured(configs.chat_completions, {
+      system: "Return text.", prompt: "synthetic prompt", stream: true,
+      onTextDelta: delta => deltas.push(delta),
+    }), (error: unknown) => {
+      assert.ok(error instanceof ModelConnectorError);
+      assert.equal(error.code, "response-too-large");
+      return true;
+    });
+  });
+  assert.deepEqual(deltas, ["early text"]);
+  assert.equal(calls, 1);
+  assert.equal(cancelled, true);
+  assert.ok(pulls <= 19, `bounded upstream reads: ${pulls}`);
+});
+
+it("bounds JSON returned by a gateway that ignores the streaming flag", async () => {
+  let calls = 0;
+  await withMockFetch(() => {
+    calls++;
+    return json({ choices: [{ message: { content: "x".repeat(2 * 1024 * 1024) }, finish_reason: "stop" }] });
+  }, async () => {
+    await assert.rejects(generateStructured(configs.chat_completions, {
+      system: "Return text.", prompt: "synthetic prompt", stream: true,
+    }), (error: unknown) => {
+      assert.ok(error instanceof ModelConnectorError);
+      assert.equal(error.code, "response-too-large");
+      return true;
+    });
+  });
+  assert.equal(calls, 1);
+});
+
+it("cancels a declared oversized stream before reading its body", async () => {
+  let cancelled = false;
+  await withMockFetch(() => new Response(new ReadableStream({
+    cancel() { cancelled = true; },
+  }), { headers: { "content-type": "text/event-stream", "content-length": String(17 * 1024 * 1024) } }), async () => {
+    await assert.rejects(generateStructured(configs.responses, {
+      system: "Return text.", prompt: "synthetic prompt", stream: true,
+    }), (error: unknown) => {
+      assert.ok(error instanceof ModelConnectorError);
+      assert.equal(error.code, "response-too-large");
+      return true;
+    });
+  });
+  assert.equal(cancelled, true);
+});
+
+it("keeps non-stream SDK responses bounded even when the caller requests streaming", async () => {
+  for (const protocol of ["anthropic", "gemini", "ollama"] as Protocol[]) {
+    await withMockFetch(() => json({ data: "x".repeat(2 * 1024 * 1024) }), async () => {
+      await assert.rejects(generateStructured(configs[protocol], {
+        system: "Return text.", prompt: "synthetic prompt", stream: true, maxOutputTokens: 128,
+      }), (error: unknown) => {
+        assert.ok(error instanceof ModelConnectorError);
+        assert.equal(error.code, "response-too-large", protocol);
+        return true;
+      });
+    });
+  }
+});
+
 function generationFixture(protocol: Protocol): unknown {
   const text = '{"ok":true}';
   switch (protocol) {
