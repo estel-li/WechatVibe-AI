@@ -256,6 +256,7 @@ it("reports output cut at the provider's cap as truncated, not as a format error
       }), (error: unknown) => {
         assert.ok(error instanceof ModelConnectorError, protocol);
         assert.equal(error.code, "output-truncated", protocol);
+        assert.deepEqual(error.usage, { inputTokens: 3, outputTokens: 2 }, protocol);
         return true;
       });
     });
@@ -267,6 +268,43 @@ it("reports output cut at the provider's cap as truncated, not as a format error
       () => testConnection(configs[protocol]));
     assert.equal(probe.ok, true, protocol);
   }
+});
+
+it("assistant non-thinking options use official DeepSeek fields for all supported official protocols", async () => {
+  for (const protocol of ["chat_completions", "responses", "anthropic"] as const) {
+    for (const official of [true, false]) {
+      await withMockFetch((_url, init) => {
+        const body = JSON.parse(String(init?.body || "{}"));
+        if (official && protocol === "responses") assert.deepEqual(body.reasoning, { effort: "none" });
+        else if (official) assert.deepEqual(body.thinking, { type: "disabled" });
+        else {
+          assert.equal("thinking" in body, false);
+          assert.equal("reasoning" in body, false);
+          assert.equal("reasoning_effort" in body, false);
+        }
+        return json(generationFixture(protocol));
+      }, () => generateStructured({ ...configs[protocol], baseUrl: official ?
+        `https://api.deepseek.com${protocol === "anthropic" ? "/anthropic" : ""}` : configs[protocol].baseUrl }, {
+        system: "Return plain text.", prompt: "synthetic prompt", maxOutputTokens: 4096,
+        disableThinking: true, requireComplete: true,
+      }));
+    }
+  }
+});
+
+it("assistant completion validation remains opt-in for existing callers", async () => {
+  const body = 'data: {"choices":[{"delta":{"content":"compatible partial"},"finish_reason":null}]}\n\n';
+  await withMockFetch(() => new Response(body, {
+    status: 200, headers: { "content-type": "text/event-stream" },
+  }), async () => {
+    const existing = await generateStructured(configs.chat_completions, {
+      system: "Return text.", prompt: "synthetic prompt", stream: true,
+    });
+    assert.equal(existing.text, "compatible partial");
+    await assert.rejects(generateStructured(configs.chat_completions, {
+      system: "Return text.", prompt: "synthetic prompt", stream: true, requireComplete: true,
+    }), (error: unknown) => error instanceof ModelConnectorError && error.code === "invalid-output");
+  });
 });
 
 it("connection test sends a fixed synthetic prompt, and only Anthropic sets a small output cap", async () => {

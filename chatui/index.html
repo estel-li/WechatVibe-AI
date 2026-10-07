@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WechatVibe</title>
+  <title>知意 AI · WechatVibe AI</title>
   <link rel="icon" type="image/png" href="/assets/wechatvibe-icon.png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="ai-assistant.css">
@@ -12,7 +12,7 @@
 
 <div class="startup-overlay" id="startupOverlay" role="status" aria-live="polite" hidden>
   <div class="startup-card">
-    <div class="startup-brand"><img src="/assets/wechatvibe-icon.png" alt=""><strong>WechatVibe</strong></div>
+    <div class="startup-brand"><img src="/assets/wechatvibe-icon.png" alt=""><strong>知意 AI</strong></div>
     <div class="startup-steps" aria-hidden="true">
       <div class="startup-step active" data-step="account">连接当前微信账号</div>
       <div class="startup-step" data-step="sessions">读取会话列表</div>
@@ -607,15 +607,15 @@
 
         <!-- Panel 2: About -->
         <div class="settings-panel" id="panelAbout" role="tabpanel" aria-labelledby="tabAbout">
-        <div class="settings-title about-title"><img src="/assets/wechatvibe-icon.png" alt="" class="about-brand-icon">关于 WechatVibe</div>
+        <div class="settings-title about-title"><img src="/assets/wechatvibe-icon.png" alt="" class="about-brand-icon">关于 知意 AI</div>
         <div class="about-intro">
-          <span class="about-edition">TAURI 2 · WINDOWS</span>
-          <h2>读懂对话，理解彼此</h2>
-          <p>查看微信会话，分析情绪与沟通意图，整理人物画像。</p>
+          <span class="about-edition">WechatVibe AI · WINDOWS</span>
+          <h2>读懂对话，自然回应</h2>
+          <p>理解情绪与沟通意图，整理人物画像；用 AI 总结对话，生成得体的回复草稿。</p>
           <div class="about-badges"><span>只读微信</span><span>本地模型 / API</span></div>
         </div>
         <div class="about-card">
-          <button type="button" class="about-row about-version-row" id="btnAboutVersion" aria-label="查看软件更新">
+          <button type="button" class="about-row about-version-row" id="btnAboutVersion" aria-label="查看知意 AI 更新">
             <span class="about-label">当前版本</span>
             <span class="about-version-value"><span class="about-val" id="aboutCurrentVersion">读取中</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span>
           </button>
@@ -624,18 +624,18 @@
             <a class="about-val about-link" id="aboutOwner" href="https://github.com/estel-li" target="_blank" rel="noopener noreferrer">estel-li</a>
           </div>
           <div class="about-row">
-            <span class="about-label">桌面架构</span>
-            <span class="about-val">Tauri 2 · WebView2</span>
+            <span class="about-label">英文名称</span>
+            <span class="about-val">WechatVibe AI</span>
           </div>
           <div class="about-row">
-            <span class="about-label">GitHub 项目</span>
-            <a class="about-val about-link" id="aboutRepository" href="https://github.com/estel-li/WechatVibe-tauri2" target="_blank" rel="noopener noreferrer">WechatVibe-tauri2</a>
+            <span class="about-label">项目主页</span>
+            <a class="about-val about-link" id="aboutRepository" href="https://github.com/estel-li/WechatVibe-tauri2" target="_blank" rel="noopener noreferrer">知意 AI / WechatVibe AI</a>
           </div>
         </div>
         <p class="about-privacy">本地模型在本机分析；API 模式会将分析所需的聊天片段发送到你配置的服务。</p>
         <details class="about-credits">
           <summary>来源与许可</summary>
-          <p>本版本由 estel-li 维护，基于 <a href="https://github.com/tswawa/WechatVibe" target="_blank" rel="noopener noreferrer">tswawa / WechatVibe</a> 移植为 Tauri 2。微信读取使用 <a href="https://github.com/fanyuantaier/wechatauto-replica" target="_blank" rel="noopener noreferrer">wechatauto-replica</a>，保留上游 Apache-2.0 许可与第三方声明。</p>
+          <p>基础功能 fork 自 <a href="https://github.com/tswawa/WechatVibe" target="_blank" rel="noopener noreferrer">tswawa / WechatVibe</a> 上游 v1.2.4，后续由 <a href="https://github.com/estel-li" target="_blank" rel="noopener noreferrer">estel-li</a> 维护。微信读取使用 <a href="https://github.com/fanyuantaier/wechatauto-replica" target="_blank" rel="noopener noreferrer">wechatauto-replica</a>，保留 Apache-2.0 许可与第三方声明。</p>
         </details>
       </div>
     </div>
@@ -647,9 +647,9 @@
     <div class="update-modal-head">
       <div class="update-modal-identity">
         <img src="/assets/wechatvibe-icon.png" alt="" class="update-modal-icon">
-        <h2 id="updateModalTitle">软件更新</h2>
+        <h2 id="updateModalTitle">知意 AI 更新</h2>
       </div>
-      <button type="button" class="update-modal-close" id="btnCloseUpdate" title="关闭" aria-label="关闭软件更新">×</button>
+      <button type="button" class="update-modal-close" id="btnCloseUpdate" title="关闭" aria-label="关闭知意 AI 更新">×</button>
     </div>
     <div class="update-modal-body">
       <div class="update-version-row"><span>当前版本</span><strong id="updateCurrentVersion">读取中</strong></div>
@@ -665,7 +665,7 @@
       </div>
     </div>
     <div class="update-modal-actions">
-      <a id="updateReleaseLink" href="https://github.com/estel-li/WechatVibe-tauri2/releases" target="_blank" rel="noopener noreferrer">本版本发布页</a>
+      <a id="updateReleaseLink" href="https://github.com/estel-li/WechatVibe-tauri2/releases" target="_blank" rel="noopener noreferrer">知意 AI 发布页</a>
       <button type="button" class="update-check-button" id="btnCheckUpdates">检查更新</button>
       <button type="button" class="update-primary-button" id="btnBeginUpdate" hidden>下载并安装</button>
     </div>
@@ -688,10 +688,16 @@
       <section id="assistantSummaryPanel" role="tabpanel" aria-labelledby="assistantTabSummary">
         <div class="assistant-form-row">
           <label>总结范围<select id="assistantSummaryRange"><option value="all">全部对话</option><option value="time">指定时间</option></select></label>
-          <div id="assistantSummaryDates" class="assistant-date-range" hidden>
-            <label>开始时间<input type="datetime-local" id="assistantSummaryFrom"></label>
-            <label>结束时间<input type="datetime-local" id="assistantSummaryTo"></label>
-          </div>
+        </div>
+        <div class="assistant-time-shortcuts" role="group" aria-label="总结时间快捷选择">
+          <button type="button" id="btnAssistantSummaryLastDay" aria-pressed="false" title="截至点击时刻的过去 24 小时">最近1天</button>
+          <button type="button" id="btnAssistantSummaryLastWeek" aria-pressed="false" title="截至点击时刻的过去 7 × 24 小时">最近一周</button>
+          <button type="button" id="btnAssistantSummaryLastMonth" aria-pressed="false" title="按本地日历回推一个月，月底自动调整为合法日期">最近一月</button>
+        </div>
+        <p class="assistant-time-help" id="assistantSummaryRangeHelp">1天为24小时，一周为7天；一月按日历回推，月底自动调整。以点击时刻结束，精确到秒。</p>
+        <div id="assistantSummaryDates" class="assistant-date-range" hidden>
+          <label>开始时间<input type="datetime-local" id="assistantSummaryFrom" step="1" aria-describedby="assistantSummaryRangeHelp"></label>
+          <label>结束时间<input type="datetime-local" id="assistantSummaryTo" step="1" aria-describedby="assistantSummaryRangeHelp"></label>
         </div>
         <label class="assistant-field">本次总结要求 <span>可选</span><textarea id="assistantSummaryInstructions" rows="2" maxlength="8000" placeholder="例如：整理重要决定、待办和双方关注的问题"></textarea></label>
         <button type="button" class="assistant-primary" id="btnAssistantSummary">生成总结</button>
@@ -701,8 +707,14 @@
           <label>对方与我的关系<select id="assistantRelationship"><option value="friend">普通朋友</option><option value="close_friend">亲密朋友</option><option value="colleague">同事</option><option value="relative">亲戚</option><option value="elder">长辈</option><option value="custom">自定义关系</option></select></label>
           <label>上下文范围<select id="assistantReplyRange"><option value="recent">最近对话</option><option value="all">全部对话</option><option value="time">指定时间</option></select></label>
         </div>
+        <div class="assistant-time-shortcuts" role="group" aria-label="回复上下文时间快捷选择">
+          <button type="button" id="btnAssistantReplyLastDay" aria-pressed="false" title="截至点击时刻的过去 24 小时">最近1天</button>
+          <button type="button" id="btnAssistantReplyLastWeek" aria-pressed="false" title="截至点击时刻的过去 7 × 24 小时">最近一周</button>
+          <button type="button" id="btnAssistantReplyLastMonth" aria-pressed="false" title="按本地日历回推一个月，月底自动调整为合法日期">最近一月</button>
+        </div>
+        <p class="assistant-time-help" id="assistantReplyRangeHelp">1天为24小时，一周为7天；一月按日历回推，月底自动调整。以点击时刻结束，精确到秒。</p>
         <div id="assistantReplyDates" class="assistant-date-range" hidden>
-          <label>开始时间<input type="datetime-local" id="assistantReplyFrom"></label><label>结束时间<input type="datetime-local" id="assistantReplyTo"></label>
+          <label>开始时间<input type="datetime-local" id="assistantReplyFrom" step="1" aria-describedby="assistantReplyRangeHelp"></label><label>结束时间<input type="datetime-local" id="assistantReplyTo" step="1" aria-describedby="assistantReplyRangeHelp"></label>
         </div>
         <label class="assistant-field">关系提示词 <span>可修改；在“模型与提示词”中保存</span><textarea id="assistantReplyPrompt" rows="3" maxlength="32000" placeholder="说明你与对方的关系、语气和边界"></textarea></label>
         <label class="assistant-field">我想表达什么 <span>可选</span><textarea id="assistantReplyInstructions" rows="2" maxlength="8000" placeholder="例如：礼貌拒绝这次邀请，并说明周末已有安排"></textarea></label>
@@ -721,7 +733,8 @@
           <label class="assistant-model-field">模型<input type="text" id="assistantModel" list="assistantModelOptions" spellcheck="false" placeholder="deepseek-flash"><datalist id="assistantModelOptions"></datalist></label>
           <button type="button" id="btnAssistantModels">获取模型列表</button>
         </div>
-        <label class="assistant-field">模型上下文长度（Token）<input type="number" id="assistantContextTokens" min="4096" max="1000000" step="1" value="65536"></label>
+        <label class="assistant-field">模型上下文长度（Token）<input type="number" id="assistantContextTokens" min="4096" max="1000000" step="1" value="1000000"></label>
+        <div class="assistant-context-upgrade"><button type="button" id="btnAssistantUpgradeContext" hidden>使用1M上下文</button></div>
         <p class="assistant-help">按服务实际支持的长度填写。较长对话会分段总结；帮我回复会优先保留最近上下文。</p>
         <label class="assistant-field">总结基本提示词<textarea id="assistantSummaryPrompt" rows="4" maxlength="32000"></textarea></label>
         <p class="assistant-help">六种关系的基本提示词可在“帮我回复”页选择并编辑；这里会一起保存。</p>

@@ -32,6 +32,9 @@ let connectedBrowser;
   }));
   assert.equal(metrics.frozen, true); assert.equal(metrics.platform, "win32");
   assert.equal(metrics.methods, true); assert.equal(metrics.titlebarHeight, 36);
+  assert.equal(await page.title(), "知意 AI · WechatVibe AI");
+  assert.equal(await page.locator(".startup-brand strong").textContent(), "知意 AI");
+  record.brand = { nameZh: "知意 AI", nameEn: "WechatVibe AI", title: await page.title() };
   assert.equal(await page.evaluate(() => typeof require), "undefined");
   const originalUrl = page.url();
   await page.evaluate(() => { window.open("https://example.com/", "_blank"); });
@@ -40,7 +43,7 @@ let connectedBrowser;
   await page.waitForTimeout(100);
   assert.equal(page.url(), originalUrl);
   passed("Renderer has no Node require and native shell blocks external navigation/popups");
-  passed("Native desktop bridge and original 36px titlebar");
+  passed("Native desktop bridge, bilingual Zhiyi / WechatVibe AI branding and original 36px titlebar");
   await screenshot("01-chat-empty-dark");
   await page.locator("#btnAddConversation").click();
   await page.locator("#btnAddAllConversations").click();
@@ -204,23 +207,60 @@ let connectedBrowser;
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ delayMs }) });
     const completed = async () => page.waitForFunction(() =>
       document.getElementById("assistantJobStatus").textContent.startsWith("生成完成"), null, { timeout: 120000 });
+    const quickRanges = async kind => {
+      for (const [shortcut, hours] of [["LastDay", 24], ["LastWeek", 168], ["LastMonth", null]]) {
+        const before = Date.now();
+        await page.locator(`#btnAssistant${kind}${shortcut}`).click();
+        const after = Date.now();
+        const selected = await page.evaluate(kind => ({
+          range: document.getElementById(`assistant${kind}Range`).value,
+          from: document.getElementById(`assistant${kind}From`).value,
+          to: document.getElementById(`assistant${kind}To`).value,
+          pressed: [...document.querySelectorAll(`#assistant${kind}Panel .assistant-time-shortcuts button`)]
+            .filter(button => button.getAttribute("aria-pressed") === "true").length,
+        }), kind);
+        assert.equal(selected.range, "time");
+        assert.equal(selected.pressed, 1);
+        assert.match(selected.from, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/);
+        const end = new Date(selected.to).getTime();
+        const start = new Date(selected.from).getTime();
+        assert.ok(end >= before - 1000 && end <= after, "Quick range uses the click time at second precision");
+        if (hours) assert.equal(end - start, hours * 3600000);
+        else {
+          const date = new Date(end), day = date.getDate();
+          date.setDate(1); date.setMonth(date.getMonth() - 1);
+          const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+          date.setDate(Math.min(day, lastDay));
+          assert.equal(start, date.getTime());
+        }
+      }
+    };
     if (await page.locator("#settingsModal").evaluate(node => node.classList.contains("show"))) await page.locator("#btnCloseSettings").click();
     await page.locator("#sessionList .session-item").first().click();
     assert.equal(await page.locator("#btnToolbarPersona").evaluate(node => node.nextElementSibling.id), "btnAISummary");
     assert.equal(await page.locator("#btnAISummary").evaluate(node => node.nextElementSibling.id), "btnAIReply");
     await page.locator("#btnAISummary").click();
     await page.waitForFunction(() => !document.getElementById("btnAssistantSummary").disabled);
+    await quickRanges("Summary");
     const beforeAll = (await stats()).requestCount;
+    const truncation = await fetch(fixtureInfo.assistantUrl + "/__fixture__/truncate", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ count: 1 }) });
+    assert.equal(truncation.status, 200);
     await page.locator("#assistantSummaryRange").selectOption("all");
     await page.locator("#btnAssistantSummary").click(); await completed();
     const allRequests = (await stats()).requests.slice(beforeAll);
-    const allIds = allRequests.filter(row => row.phase === "map" || row.phase === "summary").flatMap(row => row.sourceIds);
+    assert.equal(allRequests[0].truncated, true);
+    assert.equal(allRequests[1].truncated, false);
+    assert.deepEqual(allRequests[1].sourceIds, allRequests[0].sourceIds);
+    assert.ok(allRequests[1].maxOutputTokens > allRequests[0].maxOutputTokens);
+    const allIds = allRequests.filter(row => !row.truncated && (row.phase === "map" || row.phase === "summary")).flatMap(row => row.sourceIds);
     assert.equal(allIds.length, fixtureInfo.expectedAllCount);
     assert.equal(new Set(allIds).size, fixtureInfo.expectedAllCount);
     assert.match(await page.locator("#assistantJobStatus").textContent(), /1305 条消息/);
     assert.ok(allRequests.some(row => row.hasEarliestMarker));
     await screenshot("08-assistant-all-summary");
     passed("Native AI summary sends all 1305 history messages including unseen earliest records to the real HTTP/Python/Node stack");
+    passed("Native first-map output truncation recovers once using the complete original batch without missing or duplicating history");
     const dates = await page.evaluate(({ from, to }) => {
       const local = ms => { const d = new Date(ms); return new Date(ms - d.getTimezoneOffset() * 60000).toISOString().slice(0, 19); };
       return { from: local(from), to: local(to) };
@@ -236,6 +276,8 @@ let connectedBrowser;
     await screenshot("09-assistant-time-summary");
     passed("Native AI summary applies exact inclusive start/end time to 10 selected messages");
     await page.locator("#assistantTabReply").click();
+    await quickRanges("Reply");
+    passed("Native summary and reply shortcuts select the last day, week and calendar month with second precision");
     await page.locator("#assistantReplyRange").selectOption("recent");
     const beforeRelations = (await stats()).requestCount;
     for (const relationship of ["friend", "close_friend", "colleague", "relative", "elder"]) {
@@ -324,6 +366,8 @@ let connectedBrowser;
     const clear = await page.context().newCDPSession(page); await clear.send("Emulation.clearDeviceMetricsOverride"); await clear.detach();
     record.assistant = { allMessages: fixtureInfo.expectedAllCount, timeMessages: fixtureInfo.expectedTimeCount,
       relationshipPresets: 5, customPrompt: true, regeneration: true, clipboard: true, insertDraft: true,
+      quickTimeRanges: ["day", "week", "month"],
+      truncatedMapRecovery: true,
       modelDiscovery: true, connectionTestSyntheticOnly: true, promptPersistence: true, cancelAndSwitch: true, smallViewport: bounds };
     passed("Assistant settings cooperate with the existing dialog focus stack and fit 720x520 at 150 percent zoom");
   }

@@ -10,6 +10,8 @@
   let relationship = "friend", prompts = {}, connectionDirty = false, configBusy = false;
   let activeRun = null, result = null, returnFocus = null, configRevision = 0, configError = "", pendingSave = null;
   const requests = new Set();
+  const quickRanges = new Map();
+  const quickPeriods = [["LastDay", "day"], ["LastWeek", "week"], ["LastMonth", "month"]];
   const aborted = error => error?.name === "AbortError";
   const safeError = error => String(error?.message || error || "请求失败，请稍后重试").replace(/sk-[\w-]{8,}/g, "[已隐藏 Key]").slice(0, 1000);
 
@@ -38,6 +40,8 @@
     byId("btnAssistantReply").disabled = !ready;
     byId("btnAssistantRegenerate").disabled = !ready;
     for (const id of ["btnAssistantModels", "btnAssistantTest", "btnAssistantSave"]) byId(id).disabled = configBusy;
+    byId("btnAssistantUpgradeContext").hidden = !config?.contextUpgradeAvailable || connectionDirty;
+    byId("btnAssistantUpgradeContext").disabled = configBusy;
     for (const field of fields) byId(`assistant${field}`).disabled = configBusy;
     for (const id of ["assistantSummaryPrompt", "assistantReplyPrompt", "assistantRelationship"]) byId(id).disabled = configBusy;
   }
@@ -65,7 +69,7 @@
     byId("assistantProtocol").value = value.protocol || "chat_completions";
     byId("assistantBaseUrl").value = value.baseUrl || "https://api.deepseek.com";
     byId("assistantModel").value = value.model || "deepseek-flash";
-    byId("assistantContextTokens").value = value.contextTokens || 65536;
+    byId("assistantContextTokens").value = value.contextTokens || (value.preset === "deepseek" ? 1000000 : 65536);
     byId("assistantSummaryPrompt").value = value.summaryPrompt || "";
     byId("assistantApiKey").value = "";
     byId("assistantApiKey").placeholder = value.hasKey ? "已保存 Key；留空保留（更换地址时请重新填写）" : "输入 API Key";
@@ -164,11 +168,41 @@
     updateModelInfo();
   }
   const isCurrent = run => activeRun === run && !run.stopped && conversationRevision === run.revision && !modal.hidden;
+  function localDateTime(date) {
+    const pad = value => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  }
+  function clearQuickRange(prefix) {
+    quickRanges.delete(prefix);
+    for (const [suffix] of quickPeriods) byId(`btn${prefix[0].toUpperCase()}${prefix.slice(1)}${suffix}`).setAttribute("aria-pressed", "false");
+  }
+  function applyQuickRange(prefix, period) {
+    const to = new Date(Math.floor(Date.now() / 1000) * 1000);
+    let from;
+    if (period === "month") {
+      from = new Date(to.getTime());
+      const originalDay = from.getDate();
+      from.setDate(1); from.setMonth(from.getMonth() - 1);
+      const lastDay = new Date(from.getFullYear(), from.getMonth() + 1, 0).getDate();
+      from.setDate(Math.min(originalDay, lastDay));
+    } else from = new Date(to.getTime() - (period === "day" ? 1 : 7) * 24 * 60 * 60 * 1000);
+    clearQuickRange(prefix);
+    const fromText = localDateTime(from), toText = localDateTime(to);
+    byId(`${prefix}Range`).value = "time"; byId(`${prefix}Dates`).hidden = false;
+    byId(`${prefix}From`).value = fromText; byId(`${prefix}To`).value = toText;
+    quickRanges.set(prefix, { fromMs: from.getTime(), toMs: to.getTime(),
+      fromText: byId(`${prefix}From`).value, toText: byId(`${prefix}To`).value });
+    const suffix = quickPeriods.find(([, name]) => name === period)[0];
+    byId(`btn${prefix[0].toUpperCase()}${prefix.slice(1)}${suffix}`).setAttribute("aria-pressed", "true");
+  }
   function rangePayload(kind) {
     const prefix = kind === "summary" ? "assistantSummary" : "assistantReply";
     const range = byId(`${prefix}Range`).value;
     if (range !== "time") return { range };
     const fromText = byId(`${prefix}From`).value, toText = byId(`${prefix}To`).value;
+    const quick = quickRanges.get(prefix);
+    // Preserve the chosen instant across ambiguous local clock times at daylight-saving transitions.
+    if (quick?.fromText === fromText && quick?.toText === toText) return { range, fromMs: quick.fromMs, toMs: quick.toMs };
     const fromMs = new Date(fromText).getTime(), toMs = new Date(toText).getTime();
     if (!fromText || !toText || !Number.isFinite(fromMs) || !Number.isFinite(toMs) || fromMs > toMs)
       throw new Error("请填写有效的开始和结束时间，结束时间不能早于开始时间。");
@@ -344,7 +378,10 @@
     if (field === "ApiKey" && byId("assistantApiKey").value.trim()) byId("assistantClearKey").checked = false;
     if (field === "ClearKey" && byId("assistantClearKey").checked) byId("assistantApiKey").value = "";
     if (["Protocol", "BaseUrl"].includes(field)) {
-      if (byId("assistantProtocol").value !== "chat_completions" || byId("assistantBaseUrl").value.replace(/\/$/, "") !== "https://api.deepseek.com") byId("assistantPreset").value = "custom";
+      if (byId("assistantProtocol").value !== "chat_completions" || byId("assistantBaseUrl").value.replace(/\/$/, "") !== "https://api.deepseek.com") {
+        if (byId("assistantPreset").value === "deepseek" && Number(byId("assistantContextTokens").value) === 1000000) byId("assistantContextTokens").value = 65536;
+        byId("assistantPreset").value = "custom";
+      }
       if (byId("assistantApiKey").value) {
         byId("assistantApiKey").value = "";
         byId("assistantConfigStatus").textContent = "服务地址或协议已更改，请填写对应服务的 API Key。";
@@ -357,14 +394,24 @@
     byId("assistantApiKey").value = ""; byId("assistantClearKey").checked = false;
     if (byId("assistantPreset").value === "deepseek") {
       byId("assistantProtocol").value = "chat_completions"; byId("assistantBaseUrl").value = "https://api.deepseek.com";
-      byId("assistantModel").value = "deepseek-flash"; byId("assistantContextTokens").value = 65536;
-    }
+      byId("assistantModel").value = "deepseek-flash"; byId("assistantContextTokens").value = 1000000;
+    } else byId("assistantContextTokens").value = config?.preset === "custom" ? config.contextTokens || 65536 : 65536;
     connectionDirty = true; byId("assistantModelOptions").replaceChildren(); updateModelInfo();
   });
   byId("assistantRelationship").addEventListener("change", () => {
     rememberPrompt(); relationship = byId("assistantRelationship").value; byId("assistantReplyPrompt").value = prompts[relationship] || "";
   });
-  for (const prefix of ["assistantSummary", "assistantReply"]) byId(`${prefix}Range`).addEventListener("change", () => { byId(`${prefix}Dates`).hidden = byId(`${prefix}Range`).value !== "time"; });
+  byId("btnAssistantUpgradeContext").addEventListener("click", () => {
+    if (!config?.contextUpgradeAvailable || configBusy) return;
+    byId("assistantContextTokens").value = 1000000;
+    connectionDirty = true; updateModelInfo();
+    byId("assistantConfigStatus").textContent = "已填写 1M 上下文，尚未保存。点击“保存配置与提示词”后生效。";
+  });
+  for (const prefix of ["assistantSummary", "assistantReply"]) {
+    byId(`${prefix}Range`).addEventListener("change", () => { byId(`${prefix}Dates`).hidden = byId(`${prefix}Range`).value !== "time"; clearQuickRange(prefix); });
+    for (const bound of ["From", "To"]) byId(`${prefix}${bound}`).addEventListener("input", () => clearQuickRange(prefix));
+    for (const [suffix, period] of quickPeriods) byId(`btn${prefix[0].toUpperCase()}${prefix.slice(1)}${suffix}`).addEventListener("click", () => applyQuickRange(prefix, period));
+  }
   byId("btnAssistantSummary").addEventListener("click", () => void generate("summary"));
   byId("btnAssistantReply").addEventListener("click", () => void generate("reply"));
   byId("btnAssistantRegenerate").addEventListener("click", () => void generate(mode, true));

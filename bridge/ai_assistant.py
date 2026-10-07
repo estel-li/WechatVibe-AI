@@ -33,8 +33,12 @@ DEFAULT_SUMMARY_PROMPT = (
     "请总结给定的全部对话。按需要整理主要话题、重要事实、双方立场、情绪变化、已达成的决定和待办事项。"
     "保留关键时间、人物和条件，区分已确认事项与猜测，指出信息不足或分歧。非文本消息只能说明其类型，不能猜测图片或语音内容。"
     "使用清楚的中文，合并重复内容；不要给人物做心理诊断，不要编造未出现的事实。")
+DEEPSEEK_CONTEXT_TOKENS = 1000000
+LEGACY_DEFAULT_CONTEXT_TOKENS = 65536
+DEEPSEEK_MODELS = frozenset({"deepseek-flash", "deepseek-v4-pro"})
+DEEPSEEK_BASE_URLS = frozenset({"https://api.deepseek.com", "https://api.deepseek.com/v1"})
 DEFAULT_CONFIG = {"protocol": "chat_completions", "baseUrl": "https://api.deepseek.com",
-                  "model": "deepseek-flash", "contextTokens": 65536}
+                  "model": "deepseek-flash", "contextTokens": DEEPSEEK_CONTEXT_TOKENS}
 TERMINAL = frozenset({"completed", "failed", "cancelled"})
 ERROR_MESSAGES = {
     "auth": "API 密钥无效或没有该模型的权限，请检查助手设置。",
@@ -42,7 +46,7 @@ ERROR_MESSAGES = {
     "timeout": "模型响应超时，请稍后手动重试。",
     "network": "无法连接模型服务，请检查地址和网络。",
     "context-too-long": "模型上下文不足，请调整上下文容量或选择较短的时间范围。",
-    "output-truncated": "模型输出被截断，请调整模型或时间范围后手动重试。",
+    "output-truncated": "模型输出达到本次上限，请精简总结要求后重试，或选择支持更长输出的模型。",
     "account-changed": "当前微信账号或数据目录已变化，请重新选择会话。",
     "empty-conversation": "所选范围没有可读取的对话，请调整时间范围。",
     "assistant-failed": "助手任务未完成，请检查模型设置后手动重试。",
@@ -68,6 +72,13 @@ def _account(value):
             any(ord(char) < 32 or 0xD800 <= ord(char) <= 0xDFFF for char in value)):
         raise ValueError("invalid account")
     return value
+
+
+def _official_deepseek(config, preset):
+    """A custom host/model or a retired model ID cannot inherit this capacity."""
+    return (preset == "deepseek" and config.get("protocol") == "chat_completions" and
+            isinstance(config.get("baseUrl"), str) and isinstance(config.get("model"), str) and
+            config.get("baseUrl") in DEEPSEEK_BASE_URLS and config.get("model") in DEEPSEEK_MODELS)
 
 
 class _PreferenceStore:
@@ -123,8 +134,19 @@ class AssistantService:
     def settings(self):
         with self.settings_lock:
             saved = self.store.public()["api"]
-            return {**DEFAULT_CONFIG, **(saved or {}), **self.preferences.read(),
-                    "hasKey": bool(saved and saved["hasKey"]), "ready": bool(saved)}
+            preferences = self.preferences.read()
+            result = {**DEFAULT_CONFIG, **(saved or {}), **preferences,
+                      "hasKey": bool(saved and saved["hasKey"]), "ready": bool(saved)}
+            official = _official_deepseek(result, preferences["preset"])
+            # Version 1 did not record whether 65536 was a default or an explicit
+            # user choice. Keep every saved numeric value; offer an explicit UI
+            # upgrade instead of silently overriding a user's budget. Missing
+            # official capacity is an automatic default and can safely advance.
+            if saved and saved.get("contextTokens") is None and official:
+                result["contextTokens"] = DEEPSEEK_CONTEXT_TOKENS
+            result["contextUpgradeAvailable"] = bool(
+                saved and official and saved.get("contextTokens") == LEGACY_DEFAULT_CONTEXT_TOKENS)
+            return result
 
     def save_settings(self, payload):
         allowed = {"protocol", "baseUrl", "model", "contextTokens", "apiKey", "clearKey",
@@ -138,6 +160,9 @@ class AssistantService:
         with self.settings_lock:
             current = self.settings()
             merged = {**current, **payload}
+            if not current["ready"] and "contextTokens" not in payload:
+                merged["contextTokens"] = (DEEPSEEK_CONTEXT_TOKENS if
+                    _official_deepseek(merged, merged["preset"]) else LEGACY_DEFAULT_CONTEXT_TOKENS)
             preferences = _PreferenceStore.validate({key: merged[key] for key in
                 ("preset", "summaryPrompt", "relationshipPrompts", "defaultRelationship")})
             config = connection_values({key: merged[key] for key in

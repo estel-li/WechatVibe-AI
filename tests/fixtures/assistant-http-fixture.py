@@ -113,6 +113,7 @@ class AssistantHttpFixture:
         self.lock = threading.RLock()
         self.requests, self.model_lists = [], 0
         self.delay_ms = 0
+        self.truncations_remaining = 0
         self.backend = MinimalBackend(self.root)
         owner = self
 
@@ -152,6 +153,10 @@ class AssistantHttpFixture:
                 except (ValueError, KeyError, TypeError):
                     return self.send_json(400, {"error": "invalid synthetic request"})
                 with owner.lock:
+                    truncated = record["phase"] == "map" and owner.truncations_remaining > 0
+                    if truncated:
+                        owner.truncations_remaining -= 1
+                    record["truncated"] = truncated
                     owner.requests.append(record)
                     call = len(owner.requests)
                     delay_ms = owner.delay_ms
@@ -163,8 +168,9 @@ class AssistantHttpFixture:
                     if not body.get("stream"):
                         return self.send_json(200, {
                             "id": f"synthetic-{call}", "object": "chat.completion",
-                            "choices": [{"index": 0, "message": {"role": "assistant", "content": text},
-                                         "finish_reason": "stop"}],
+                            "choices": [{"index": 0, "message": {"role": "assistant",
+                                "content": "INCOMPLETE_SYNTHETIC_NOTE" if truncated else text},
+                                         "finish_reason": "length" if truncated else "stop"}],
                             "usage": {"prompt_tokens": 10, "completion_tokens": 5}})
                     chunks = [text[index:index + 8] for index in range(0, len(text), 8)]
                     payload = "".join("data: " + json.dumps({
@@ -207,6 +213,21 @@ class AssistantHttpFixture:
                     self.send(200, {"stopping": True})
                     owner.stop.set()
                     return
+                if endpoint == "/__fixture__/truncate":
+                    if not self.trusted_request():
+                        return self.send(403, {"error": "forbidden"})
+                    try:
+                        length = int(self.headers.get("Content-Length", 0))
+                        if not 0 < length <= 128:
+                            raise ValueError()
+                        count = json.loads(self.rfile.read(length))["count"]
+                        if type(count) is not int or not 0 <= count <= 2:
+                            raise ValueError()
+                    except (ValueError, KeyError, TypeError):
+                        return self.send(400, {"error": "invalid truncation count"})
+                    with owner.lock:
+                        owner.truncations_remaining = count
+                    return self.send(200, {"count": count})
                 if endpoint == "/__fixture__/delay":
                     if not self.trusted_request():
                         return self.send(403, {"error": "forbidden"})
@@ -262,7 +283,8 @@ class AssistantHttpFixture:
                   "customPrompt": "CUSTOM_PROMPT" in system or "自定义" in system,
                   "relationships": [word for word in ("普通朋友", "亲密朋友", "同事", "亲戚", "长辈") if word in system],
                   "systemPrompt": system, "instructionsPresent": "用户补充要求" in prompt,
-                  "model": str(body.get("model", ""))[:256], "stream": bool(body.get("stream"))}
+                  "model": str(body.get("model", ""))[:256], "stream": bool(body.get("stream")),
+                  "maxOutputTokens": body.get("max_tokens")}
         if phase == "probe":
             return '{"ok":true}', record
         if phase in ("map", "reduce"):

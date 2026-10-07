@@ -11,7 +11,7 @@
   const isTop = () => window.top === window;
   const isActive = () => navigator.userActivation?.isActive === true;
   const invoke = (command, args = {}) => tauri.core.invoke(command, args);
-  const warn = error => console.error("WechatVibe desktop bridge", error);
+  const warn = error => console.error("WechatVibe AI desktop bridge", error);
   const blocked = phase => Promise.resolve({ [phase]: "blocked" });
   const cleanup = [];
   let disposed = false;

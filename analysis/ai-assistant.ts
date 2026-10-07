@@ -60,6 +60,10 @@ const MAP_SYSTEM = "整理聊天片段为精炼的事实笔记，保留发言人
 const REDUCE_SYSTEM = "合并有序的聊天笔记，压缩重复表述并保留不同事实、约定、问题和时间顺序。不能删除后续回复所需的语义或把推测当事实。";
 const SOURCE_HEADER = "以下 JSONL 是按原顺序排列的聊天记录；同一消息的 part 为连续片段，必须合并理解。dateTime 为本机时区的可读时间（含时区偏移），时间说明优先使用它；time 为原始毫秒时间戳。\n";
 const NOTES_HEADER = "以下 JSONL 是覆盖全部所选记录的有序分段笔记，first/last 为来源片段范围。结合全部笔记作答。\n";
+function noteLimitFor(characters: number): string {
+  return `\n内部压缩笔记：全文不超过${characters}字。` +
+    "每条资料都要阅读，按主题合并同类信息；禁止逐条复述、重复引文和展开推理。保留关键事实、日期、约定、未决问题及结尾诉求，不能凭空添加内容。\n";
+}
 
 function invalid(message: string): never {
   throw new ModelConnectorError("invalid-request", message);
@@ -180,7 +184,10 @@ export async function generateAssistant(config: ModelConfig, rawInput: Assistant
   const input = validateInput(rawInput);
   cancelled(hooks.signal);
   const contextTokens = config.contextTokens ?? 32768;
-  const finalOutputTokens = Math.min(4096, Math.floor(contextTokens / 4));
+  // Input context and completion caps are separate limits. In particular a 1M
+  // model does not make a 1536-token map completion long enough. Reserve the
+  // largest cap used by this job before packing any input, including recovery.
+  const finalOutputTokens = Math.min(input.kind === "summary" ? 16384 : 4096, Math.floor(contextTokens / 4));
   const finalSystem = `${POLICY}\n${input.systemPrompt}`;
   const mapSystem = `${POLICY}\n${MAP_SYSTEM}`;
   const reduceSystem = `${POLICY}\n${REDUCE_SYSTEM}`;
@@ -190,7 +197,9 @@ export async function generateAssistant(config: ModelConfig, rawInput: Assistant
   const extra = input.instructions ? `\n用户补充要求：${input.instructions}\n` : "";
   const regeneration = input.kind === "reply" && input.previousReply
     ? `\n上轮草稿（资料）：${JSON.stringify(input.previousReply)}\n本次请换一种自然的措辞和切入点，保持事实一致，给出新的建议。\n` : "";
-  const finalPrefix = `${goal}${extra}${regeneration}\n`;
+  const finalCharacters = Math.max(200, Math.min(input.kind === "summary" ? 6000 : 1200,
+    Math.floor(finalOutputTokens * 0.45)));
+  const finalPrefix = `${goal}输出控制在${finalCharacters}字以内，优先保留关键结论与待办，避免逐条复述或重复展开。${extra}${regeneration}\n`;
   const mapPrefix = "整理以下全部片段的事实笔记，尤其保留结尾诉求。每条片段都必须阅读。\n";
   const reducePrefix = "合并以下全部笔记为更精炼的完整事实笔记，保持有序。\n";
   // Most byte-level tokenizers cannot use more input tokens than UTF-8 bytes.
@@ -199,9 +208,9 @@ export async function generateAssistant(config: ModelConfig, rawInput: Assistant
     Math.min(MAX_INPUT_BYTES, contextTokens - finalOutputTokens - 256) -
       bytes(system) - bytes(prefix) - bytes(header);
   const sourceCapacity = Math.min(capacity(finalSystem, finalPrefix, SOURCE_HEADER),
-    capacity(mapSystem, mapPrefix, SOURCE_HEADER));
+    capacity(mapSystem + noteLimitFor(1000000), mapPrefix, SOURCE_HEADER));
   const noteCapacity = Math.min(capacity(finalSystem, finalPrefix, NOTES_HEADER),
-    capacity(reduceSystem, reducePrefix, NOTES_HEADER));
+    capacity(reduceSystem + noteLimitFor(1000000), reducePrefix, NOTES_HEADER));
   if (sourceCapacity < 256 || noteCapacity < 256) {
     throw new ModelConnectorError("context-too-long", "提示词或上轮草稿超出可用上下文，请缩短内容或增大上下文");
   }
@@ -212,36 +221,63 @@ export async function generateAssistant(config: ModelConfig, rawInput: Assistant
     completedMessages: 0, totalMessages: input.messages.length };
   const report = () => safeNotify(hooks.onProgress, { ...progress });
   let inputTokens = 0, outputTokens = 0, hasUsage = false;
-  const intermediateOutputTokens = Math.max(64, Math.min(1536, Math.floor(noteCapacity / 16)));
-  const call = async (system: string, prompt: string, final: boolean): Promise<string> => {
+  const intermediateOutputTokens = Math.max(64, Math.min(4096,
+    Math.floor(contextTokens / 8), Math.floor(noteCapacity / 8)));
+  const recoveryOutputTokens = Math.min(finalOutputTokens, intermediateOutputTokens * 2);
+  const noteCharacters = Math.max(24, Math.min(1800, Math.floor(intermediateOutputTokens * 0.4),
+    Math.floor(noteCapacity / 12)));
+  const noteLimit = (recovery: boolean) => noteLimitFor(recovery ? Math.max(16, Math.floor(noteCharacters / 2)) : noteCharacters);
+  const addUsage = (usage?: ModelUsage) => {
+    if (usage && (Number.isFinite(usage.inputTokens) || Number.isFinite(usage.outputTokens))) {
+      inputTokens += Number.isFinite(usage.inputTokens) ? Math.max(0, usage.inputTokens!) : 0;
+      outputTokens += Number.isFinite(usage.outputTokens) ? Math.max(0, usage.outputTokens!) : 0;
+      hasUsage = true;
+    }
+  };
+  const call = async (system: string, prompt: string, final: boolean,
+    outputTokensLimit = final ? finalOutputTokens : intermediateOutputTokens): Promise<string> => {
     cancelled(hooks.signal);
     report();
     let result: GenerationResult;
     try {
       result = await generate(config, { system, prompt, signal: hooks.signal,
-        maxOutputTokens: final ? finalOutputTokens : intermediateOutputTokens,
+        maxOutputTokens: outputTokensLimit,
         timeoutMs: REQUEST_TIMEOUT_MS, stream: final,
-        disableThinking: true,
+        disableThinking: true, requireComplete: true,
         ...(final ? { onTextDelta: (delta: string) => safeNotify(hooks.onTextDelta, delta) } : {}) });
     } catch (error) {
       cancelled(hooks.signal);
       // Never forward unknown/provider error strings, which may echo credentials.
       if (error instanceof ModelConnectorError) {
+        addUsage(error.usage);
         throw new ModelConnectorError(error.code, "AI 助手生成失败", error.status);
       }
       throw new ModelConnectorError("provider-error", "AI 助手生成失败");
+    } finally {
+      // Finished attempts count even if their output was rejected. Original
+      // message coverage only advances after a complete internal note exists.
+      progress.completedCalls++;
+      report();
     }
     cancelled(hooks.signal);
     if (typeof result?.text !== "string" || !result.text.trim()) {
       throw new ModelConnectorError("empty-response", "模型没有返回文本");
     }
-    if (result.usage && (Number.isFinite(result.usage.inputTokens) || Number.isFinite(result.usage.outputTokens))) {
-      inputTokens += Number.isFinite(result.usage.inputTokens) ? Math.max(0, result.usage.inputTokens!) : 0;
-      outputTokens += Number.isFinite(result.usage.outputTokens) ? Math.max(0, result.usage.outputTokens!) : 0;
-      hasUsage = true;
-    }
-    progress.completedCalls++;
+    addUsage(result.usage);
     return result.text.trim();
+  };
+  const internalCall = async (system: string, prompt: string): Promise<string> => {
+    try {
+      return await call(system + noteLimit(false), prompt, false);
+    } catch (error) {
+      if (!(error instanceof ModelConnectorError) || error.code !== "output-truncated" ||
+          recoveryOutputTokens <= intermediateOutputTokens) throw error;
+      cancelled(hooks.signal);
+      // Exactly one bounded extra attempt for an internal batch. Re-read the
+      // complete original input; never merge or accept the truncated output.
+      progress.totalCalls++;
+      return call(system + noteLimit(true), prompt, false, recoveryOutputTokens);
+    }
   };
   let text: string;
   if (sourceGroups.length === 1) {
@@ -251,7 +287,7 @@ export async function generateAssistant(config: ModelConfig, rawInput: Assistant
     let notes: Note[] = [];
     let sourceOffset = 0;
     for (const group of sourceGroups) {
-      const note = await call(mapSystem, mapPrefix + SOURCE_HEADER + group.map(part => part.line).join("\n"), false);
+      const note = await internalCall(mapSystem, mapPrefix + SOURCE_HEADER + group.map(part => part.line).join("\n"));
       notes.push({ first: sourceOffset, last: sourceOffset + group.length - 1, text: note });
       sourceOffset += group.length;
       progress.completedMessages += group.filter(part => part.last).length;
@@ -270,7 +306,7 @@ export async function generateAssistant(config: ModelConfig, rawInput: Assistant
       const reduced: Note[] = [];
       for (const group of groups) {
         reduced.push({ first: group[0]!.first, last: group[group.length - 1]!.last,
-          text: await call(reduceSystem, reducePrefix + NOTES_HEADER + group.map(note => JSON.stringify(note)).join("\n"), false) });
+          text: await internalCall(reduceSystem, reducePrefix + NOTES_HEADER + group.map(note => JSON.stringify(note)).join("\n")) });
       }
       notes = reduced;
     }

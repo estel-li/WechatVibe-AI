@@ -63,6 +63,35 @@ class AssistantHttpFixtureTests(unittest.TestCase):
         self.assertTrue(stats["requests"][-1]["stream"])
         self.assertEqual(stats["remoteCalls"], 0)
 
+    def test_1295_messages_recover_first_truncated_map_with_complete_original_batch(self):
+        self.fixture.backend.source.rows["synthetic-a"] = self.fixture.backend.source.rows["synthetic-a"][:1295]
+        self.request("/api/assistant/settings", {"contextTokens": 65536})
+        self.request("/__fixture__/truncate", {"count": 1})
+        result = self.poll(self.job())
+        self.assertEqual(result["status"], "completed", result)
+        self.assertEqual(result["messageCount"], 1295)
+        calls = self.request("/__fixture__/stats")["requests"]
+        self.assertTrue(calls[0]["truncated"])
+        self.assertFalse(calls[1]["truncated"])
+        self.assertEqual(calls[0]["sourceIds"], calls[1]["sourceIds"])
+        self.assertGreater(calls[1]["maxOutputTokens"], calls[0]["maxOutputTokens"])
+        succeeded = [message_id for call in calls if not call["truncated"] for message_id in call["sourceIds"]]
+        self.assertEqual(succeeded, [f"synthetic-a-history-{index + 1:04d}" for index in range(1295)])
+        self.assertIn("1295 条所选消息", result["text"])
+        self.assertNotIn("INCOMPLETE_SYNTHETIC_NOTE", result["text"])
+        self.assertEqual(result["progress"]["completed"], result["progress"]["total"])
+
+    def test_repeated_truncation_is_bounded_and_never_uses_partial_notes(self):
+        self.request("/api/assistant/settings", {"contextTokens": 65536})
+        self.request("/__fixture__/truncate", {"count": 2})
+        result = self.poll(self.job())
+        self.assertEqual(result["status"], "failed", result)
+        self.assertEqual(result["error"]["code"], "output-truncated")
+        self.assertEqual(result["text"], "")
+        calls = self.request("/__fixture__/stats")["requests"]
+        self.assertEqual(len(calls), 2)
+        self.assertTrue(all(call["truncated"] for call in calls))
+
     def test_time_selection_filters_real_history_before_model_call_inclusively(self):
         result = self.poll(self.job(range="time", fromMs=self.ready["fromMs"], toMs=self.ready["toMs"]))
         self.assertEqual(result["status"], "completed", result)

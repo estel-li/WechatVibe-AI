@@ -1,0 +1,35 @@
+{
+  "generationMode": "built-in imagegen",
+  "status": "selected",
+  "selected": "05-teal-compass",
+  "nameZh": "知意 AI",
+  "nameEn": "WechatVibe AI",
+  "appAsset": "chatui/assets/wechatvibe-icon.png",
+  "nativeConversion": "Tauri CLI icon; original selected PNG preserved",
+  "prompts": [
+    {
+      "id": "01-jade-dialogue",
+      "prompt": "Use case: logo-brand. Create a premium Windows desktop application icon for an AI chat-history analysis, conversation summary and reply-drafting assistant. Deliver exactly ONE square app icon, not a presentation board. Square canvas 1024x1024, large centered rounded-square tile extending nearly to edges, strong silhouette legible at 32 pixels, restrained high-quality soft 3D/flat hybrid, minimal geometry, clean negative space. No text, no letters, no numbers, no captions, no watermark. No WeChat/Tencent logo, no existing brand logo, no tiny network dots or busy circuitry. Keep foreground central and substantial, no giant empty margin. Deep jade rounded tile. Two offset ivory chat shapes converge into a single open diamond/star in their shared negative space, expressing conversation understanding. Distinctive crisp rounded geometry, subtle mint rim light, calm warm professional material."
+    },
+    {
+      "id": "02-indigo-insight",
+      "prompt": "Use case: logo-brand. Create a premium Windows desktop application icon for an AI chat-history analysis, conversation summary and reply-drafting assistant. Deliver exactly ONE square app icon, not a presentation board. Square canvas 1024x1024, large centered rounded-square tile extending nearly to edges, strong silhouette legible at 32 pixels, restrained high-quality soft 3D/flat hybrid, minimal geometry, clean negative space. No text, no letters, no numbers, no captions, no watermark. No WeChat/Tencent logo, no existing brand logo, no tiny network dots or busy circuitry. Keep foreground central and substantial, no giant empty margin. Midnight indigo rounded tile with a clean luminous cyan and lavender lens-shaped chat bubble. A simple four-point spark floats INSIDE the lens, expressing AI insight into conversation. Contemporary soft glass materials with high contrast and no visual clutter."
+    },
+    {
+      "id": "03-coral-heartwave",
+      "prompt": "Use case: logo-brand. Create a premium Windows desktop application icon for an AI chat-history analysis, conversation summary and reply-drafting assistant. Deliver exactly ONE square app icon, not a presentation board. Square canvas 1024x1024, large centered rounded-square tile extending nearly to edges, strong silhouette legible at 32 pixels, restrained high-quality soft 3D/flat hybrid, minimal geometry, clean negative space. No text, no letters, no numbers, no captions, no watermark. No WeChat/Tencent logo, no existing brand logo, no tiny network dots or busy circuitry. Keep foreground central and substantial, no giant empty margin. Warm ivory rounded tile. Bold coral-red chat bubble silhouette holding a minimal three-bar curved wave that forms a subtle heart contour. Friendly emotional intelligence, matte ceramic materials, gentle peach shadows, clear recognizability."
+    },
+    {
+      "id": "04-lime-voice",
+      "prompt": "Use case: logo-brand. Create a premium Windows desktop application icon for an AI chat-history analysis, conversation summary and reply-drafting assistant. Deliver exactly ONE square app icon, not a presentation board. Square canvas 1024x1024, large centered rounded-square tile extending nearly to edges, strong silhouette legible at 32 pixels, restrained high-quality soft 3D/flat hybrid, minimal geometry, clean negative space. No text, no letters, no numbers, no captions, no watermark. No WeChat/Tencent logo, no existing brand logo, no tiny network dots or busy circuitry. Keep foreground central and substantial, no giant empty margin. Very dark graphite rounded tile. A single bold lime-green conversation speech balloon made from three continuous bent ribbons, its interior negative space suggesting an audio waveform and dialogue. Dynamic clever distinct silhouette, matte surface, tiny restrained mint highlight."
+    },
+    {
+      "id": "05-teal-compass",
+      "prompt": "Use case: logo-brand. Create a premium Windows desktop application icon for an AI chat-history analysis, conversation summary and reply-drafting assistant. Deliver exactly ONE square app icon, not a presentation board. Square canvas 1024x1024, large centered rounded-square tile extending nearly to edges, strong silhouette legible at 32 pixels, restrained high-quality soft 3D/flat hybrid, minimal geometry, clean negative space. No text, no letters, no numbers, no captions, no watermark. No WeChat/Tencent logo, no existing brand logo, no tiny network dots or busy circuitry. Keep foreground central and substantial, no giant empty margin. Cream-white rounded tile with a solid deep teal chat-shaped circular compass, a large warm gold four-point needle/star at its center. The idea is finding the meaning and direction of conversation. Restrained sculptural depth, clean broad shapes and balanced asymmetric tail."
+    },
+    {
+      "id": "06-violet-twin",
+      "prompt": "Use case: logo-brand. Create a premium Windows desktop application icon for an AI chat-history analysis, conversation summary and reply-drafting assistant. Deliver exactly ONE square app icon, not a presentation board. Square canvas 1024x1024, large centered rounded-square tile extending nearly to edges, strong silhouette legible at 32 pixels, restrained high-quality soft 3D/flat hybrid, minimal geometry, clean negative space. No text, no letters, no numbers, no captions, no watermark. No WeChat/Tencent logo, no existing brand logo, no tiny network dots or busy circuitry. Keep foreground central and substantial, no giant empty margin. Rich periwinkle-violet rounded tile. Two pearl-white interlocking speech forms look like two people listening, one small mint four-point star near their intersection. Friendly companion identity, softly dimensional modern desktop app icon with crisp readable shape."
+    }
+  ]
+}

@@ -4995,7 +4995,7 @@ function setDisplayedVersion(value) {
   if (!version) return;
   text("aboutCurrentVersion", version);
   text("updateCurrentVersion", version);
-  byId("btnAboutVersion").setAttribute("aria-label", `查看软件更新，当前版本 ${version}`);
+  byId("btnAboutVersion").setAttribute("aria-label", `查看知意 AI 更新，当前版本 ${version}`);
 }
 function loadAboutVersion() {
   if (aboutVersionPromise) return aboutVersionPromise;

@@ -279,7 +279,7 @@ fn setup(app: &mut tauri::App) -> Result<(), String> {
         let profile = root.join(".local/tauri-webview");
         std::fs::create_dir_all(&profile).map_err(|e| e.to_string())?;
         let window = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url.clone()))
-            .title("WechatVibe")
+            .title("知意 AI · WechatVibe AI")
             .inner_size(1180.0, 780.0)
             .min_inner_size(720.0, 520.0)
             .resizable(true)
@@ -355,7 +355,7 @@ fn main() {
     let app = match application {
         Ok(app) => app,
         Err(error) => {
-            show_error("WechatVibe 启动失败", &error.to_string());
+            show_error("知意 AI 启动失败", &error.to_string());
             return;
         }
     };
@@ -381,7 +381,7 @@ fn main() {
                             Ok(value)
                                 if value.get("handoff").and_then(Value::as_bool) == Some(true) => {}
                             result => show_error(
-                                "WechatVibe 退出提示",
+                                "知意 AI 退出提示",
                                 &format!("本地服务未能安全关闭：{result:?}"),
                             ),
                         }

@@ -134,7 +134,8 @@ class AssistantTests(unittest.TestCase):
     def test_settings_are_side_effect_free_and_independent(self):
         settings = self.service.settings()
         self.assertEqual(settings["model"], "deepseek-flash")
-        self.assertEqual(settings["contextTokens"], 65536)
+        self.assertEqual(settings["contextTokens"], 1000000)
+        self.assertFalse(settings["contextUpgradeAvailable"])
         self.assertFalse(settings["hasKey"])
         self.assertFalse(settings["ready"])
         self.assertEqual(set(settings["relationshipPrompts"]), set(RELATIONSHIPS))
@@ -156,6 +157,65 @@ class AssistantTests(unittest.TestCase):
         self.service.save_settings({"preset": "custom", "baseUrl": "https://other.example/v1"})
         self.assertFalse(self.service.settings()["hasKey"])
         self.assertIsNone(self.service._connection({}, True)["apiKey"])
+
+    def test_official_missing_context_advances_without_rewriting_or_decrypting_profile(self):
+        self.store.save_api("chat_completions", "https://api.deepseek.com", "deepseek-flash",
+                            "synthetic-secret", context_tokens=None)
+        before = self.store.path.read_bytes()
+        def never_decrypt(_value):
+            self.fail("settings read decrypted a key")
+        self.store.unprotect = never_decrypt
+        settings = self.service.settings()
+        self.assertEqual(settings["contextTokens"], 1000000)
+        self.assertFalse(settings["contextUpgradeAvailable"])
+        self.assertTrue(settings["hasKey"])
+        self.assertEqual(self.store.path.read_bytes(), before)
+        self.assertEqual(self.analyzers, [])
+
+    def test_legacy_official_numeric_context_preserved_until_user_explicitly_upgrades(self):
+        self.store.save_api("chat_completions", "https://api.deepseek.com/v1", "deepseek-v4-pro",
+                            "synthetic-secret", context_tokens=65536)
+        before = self.store.path.read_bytes()
+        source_id = self.store.saved_selection()["sourceId"]
+        settings = self.service.settings()
+        self.assertEqual(settings["contextTokens"], 65536)
+        self.assertTrue(settings["contextUpgradeAvailable"])
+        self.assertEqual(self.store.path.read_bytes(), before)
+        self.service.save_settings({"summaryPrompt": "新版总结提示"})
+        self.assertEqual(self.service.settings()["contextTokens"], 65536)
+        self.assertTrue(self.service.settings()["contextUpgradeAvailable"])
+        self.service.save_settings({"contextTokens": 1000000})
+        self.assertEqual(self.service.settings()["contextTokens"], 1000000)
+        self.assertFalse(self.service.settings()["contextUpgradeAvailable"])
+        self.assertEqual(self.service._connection({}, True)["apiKey"], "synthetic-secret")
+        self.assertEqual(self.store.saved_selection()["sourceId"], source_id)
+
+    def test_explicit_capacity_custom_hosts_models_and_retired_ids_are_not_upgraded(self):
+        variants = [
+            ("deepseek", "https://api.deepseek.com", "deepseek-flash", 32768),
+            ("deepseek", "https://api.deepseek.com", "deepseek-flash", 131072),
+            ("custom", "https://api.deepseek.com", "deepseek-flash", 65536),
+            ("deepseek", "https://custom.example/v1", "deepseek-flash", 65536),
+            ("deepseek", "https://api.deepseek.com", "custom-model", 65536),
+            ("deepseek", "https://api.deepseek.com", "deepseek-chat", 65536),
+            ("deepseek", "https://api.deepseek.com", "deepseek-reasoner", 65536),
+            ("custom", "http://127.0.0.1:8080/v1", "custom-model", None),
+        ]
+        for preset, base_url, model, context in variants:
+            with self.subTest(preset=preset, base=base_url, model=model, context=context):
+                self.service.save_settings({"preset": preset, "baseUrl": base_url, "model": model,
+                                            "contextTokens": context})
+                before = self.store.path.read_bytes()
+                settings = self.service.settings()
+                self.assertEqual(settings["contextTokens"], context)
+                self.assertFalse(settings["contextUpgradeAvailable"])
+                self.assertEqual(self.store.path.read_bytes(), before)
+
+    def test_first_custom_configuration_without_capacity_keeps_previous_safe_default(self):
+        settings = self.service.save_settings({"preset": "custom", "baseUrl": "https://custom.example/v1",
+                                               "model": "custom-model"})
+        self.assertEqual(settings["contextTokens"], 65536)
+        self.assertFalse(settings["contextUpgradeAvailable"])
 
     def test_clear_key_does_not_reuse_old_ciphertext(self):
         self.configure()

@@ -9,7 +9,7 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 const settings = () => ({ preset: "deepseek", protocol: "chat_completions", baseUrl: "https://api.deepseek.com", model: "deepseek-flash", contextTokens: 65536, ready: true, hasKey: true,
   summaryPrompt: "总结给定对话", relationshipPrompts: { friend: "朋友提示", close_friend: "亲密提示", colleague: "同事提示", relative: "亲戚提示", elder: "长辈提示", custom: "自定义提示" }, defaultRelationship: "friend" });
 
-function harness(handler, readSettings = settings) {
+function harness(handler, readSettings = settings, clock) {
   const nodes = new Map(), requests = [], copied = [];
   const document = { activeElement: null, events: {}, addEventListener(type, callback) { (this.events[type] ||= []).push(callback); },
     getElementById(id) { return nodes.get(id); }, querySelectorAll() { return [...nodes.values()].filter(node => node.dataset.assistantTab); },
@@ -56,7 +56,8 @@ function harness(handler, readSettings = settings) {
     return { ok: true, status: 200, json: async () => value };
   };
   const navigator = {};
-  vm.runInNewContext(source, { document, window, fetch, navigator, AbortController, setTimeout, clearTimeout,
+  const HarnessDate = clock ? class extends Date { static now() { return clock.now(); } } : Date;
+  vm.runInNewContext(source, { document, window, fetch, navigator, Date: HarnessDate, AbortController, setTimeout, clearTimeout,
     Event: class { constructor(type, options) { this.type = type; Object.assign(this, options); } } });
   return { document, nodes, requests, copied, window, navigator, api: window.AIAssistant,
     node: id => nodes.get(id), input(id, value) { const node = nodes.get(id); node.value = value; node.dispatchEvent({ type: "input" }); },
@@ -201,4 +202,51 @@ test("general settings can configure the assistant before an account or chat exi
   assert.equal(h.node("btnAssistantReply").disabled, true); h.node("btnAssistantReply").click(); h.node("btnAssistantSummary").click();
   assert.equal(h.requests.some(item => item.url.includes("/jobs")), false);
   assert.equal(h.requests.every(item => item.url.startsWith("/api/assistant/")), true); h.close(); assert.equal(h.document.activeElement, trigger);
+});
+
+test("day and week shortcuts use rolling hours, click-time seconds and the existing exact time request format", async () => {
+  let now = new Date(2026, 9, 7, 12, 34, 56, 987).getTime();
+  const h = harness(async (url, body) => ({ id: "quick", account: body.account, user: body.user, kind: body.kind, status: "completed", text: "时间段结果" }), settings, { now: () => now });
+  await h.open("summary"); h.node("btnAssistantSummaryLastDay").click();
+  assert.equal(h.requests.length, 1, "Choosing a range alone must not generate or make provider calls");
+  assert.equal(h.node("assistantSummaryRange").value, "time"); assert.equal(h.node("assistantSummaryDates").hidden, false);
+  assert.match(h.node("assistantSummaryTo").value, /T12:34:56$/); assert.equal(h.node("assistantSummaryTo").getAttribute("step"), "1");
+  h.node("btnAssistantSummary").click(); await tick(); let payload = h.requests.at(-1).body;
+  assert.equal(payload.range, "time"); assert.equal(payload.toMs, Math.floor(now / 1000) * 1000); assert.equal(payload.toMs - payload.fromMs, 24 * 3600000);
+  now += 61000; h.node("btnAssistantSummaryLastWeek").click(); h.node("btnAssistantSummary").click(); await tick(); payload = h.requests.at(-1).body;
+  assert.equal(payload.toMs, Math.floor(now / 1000) * 1000); assert.equal(payload.toMs - payload.fromMs, 7 * 24 * 3600000);
+  assert.equal(h.node("btnAssistantSummaryLastDay").getAttribute("aria-pressed"), "false"); assert.equal(h.node("btnAssistantSummaryLastWeek").getAttribute("aria-pressed"), "true");
+  h.input("assistantSummaryFrom", "2026-10-01T08:02:03"); h.node("btnAssistantSummary").click(); await tick();
+  assert.equal(h.requests.at(-1).body.fromMs, new Date("2026-10-01T08:02:03").getTime());
+  assert.equal(h.node("btnAssistantSummaryLastWeek").getAttribute("aria-pressed"), "false"); h.close();
+});
+
+test("month shortcuts clamp month ends for ordinary, leap and year-boundary dates and work for replies too", async () => {
+  let now;
+  const h = harness(async (url, body) => ({ id: "month", account: body.account, user: body.user, kind: body.kind, status: "completed", text: "回复" }), settings, { now: () => now });
+  await h.open("reply");
+  for (const [year, month, day, fromYear, fromMonth, fromDay] of [[2025, 2, 31, 2025, 1, 28], [2024, 2, 31, 2024, 1, 29], [2026, 0, 31, 2025, 11, 31]]) {
+    now = new Date(year, month, day, 18, 45, 12, 321).getTime(); h.node("btnAssistantReplyLastMonth").click();
+    assert.equal(h.node("assistantReplyRange").value, "time"); assert.equal(h.node("assistantReplyDates").hidden, false);
+    h.node("btnAssistantReply").click(); await tick(); const payload = h.requests.at(-1).body;
+    assert.equal(payload.kind, "reply"); assert.equal(payload.fromMs, new Date(fromYear, fromMonth, fromDay, 18, 45, 12).getTime());
+    assert.equal(payload.toMs, new Date(year, month, day, 18, 45, 12).getTime());
+  }
+  h.node("assistantTabSummary").click(); h.node("btnAssistantSummaryLastMonth").click(); h.node("btnAssistantSummary").click(); await tick();
+  assert.equal(h.requests.at(-1).body.fromMs, new Date(2025, 11, 31, 18, 45, 12).getTime()); h.close();
+});
+
+test("official context upgrade is explicit and saved, while a custom capacity survives preset round trips", async () => {
+  let saved;
+  const legacy = () => ({ ...settings(), contextUpgradeAvailable: true });
+  const h = harness(async (url, body) => { saved = body; return { ...legacy(), ...body, contextUpgradeAvailable: false }; }, legacy);
+  await h.open(); h.node("assistantTabSettings").click(); assert.equal(h.node("assistantContextTokens").value, 65536);
+  assert.equal(h.node("btnAssistantUpgradeContext").hidden, false); h.node("btnAssistantUpgradeContext").click();
+  assert.equal(h.node("assistantContextTokens").value, 1000000); assert.equal(h.node("btnAssistantReply").disabled, true);
+  assert.match(h.node("assistantConfigStatus").textContent, /尚未保存/); assert.equal(h.requests.length, 1);
+  h.node("btnAssistantSave").click(); await tick(); assert.equal(saved.contextTokens, 1000000); assert.equal(h.node("btnAssistantUpgradeContext").hidden, true); h.close();
+  const custom = harness(async () => ({}), () => ({ ...settings(), preset: "custom", baseUrl: "https://custom.example.test", contextTokens: 8192 }));
+  await custom.open(); assert.equal(custom.node("assistantContextTokens").value, 8192);
+  custom.change("assistantPreset", "deepseek"); assert.equal(custom.node("assistantContextTokens").value, 1000000);
+  custom.change("assistantPreset", "custom"); assert.equal(custom.node("assistantContextTokens").value, 8192); custom.close();
 });

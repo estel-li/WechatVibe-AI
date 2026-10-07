@@ -3,7 +3,7 @@
   "version": "1.1.0",
   "private": true,
   "type": "module",
-  "description": "WechatVibe 本机只读微信会话分析桌面客户端",
+  "description": "知意 AI / WechatVibe AI：本机微信会话分析、AI 总结与回复辅助客户端",
   "license": "Apache-2.0",
   "engines": {
     "node": ">=24.11.1 <25"

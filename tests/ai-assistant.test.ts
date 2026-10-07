@@ -291,3 +291,125 @@ it("thinking-only or empty valid streams fail without returning reasoning or iss
     }
   } finally { globalThis.fetch = original; }
 });
+
+it("1295 synthetic messages recover a truncated first map once with full coverage and accurate progress", async () => {
+  const messages: AssistantMessage[] = Array.from({ length: 1295 }, (_, i) => ({
+    id: `message-${i}`, side: i % 2 ? "self" : "other", text: "合成沟通记录".repeat(10),
+  }));
+  const requests: GenerationRequest[] = [], seen: string[] = [], progress: AssistantProgress[] = [];
+  const result = await generateAssistant({ ...config, contextTokens: 65536 }, { ...input, messages }, {
+    onProgress: value => progress.push(value),
+  }, async (_, request) => {
+    requests.push(request);
+    if (requests.length === 1) {
+      throw new ModelConnectorError("output-truncated", "synthetic cap", undefined,
+        { inputTokens: 100, outputTokens: request.maxOutputTokens });
+    }
+    seen.push(...records(request.prompt).filter(row => row.id).map(row => row.id));
+    return { text: request.stream ? "全部1295条合成聊天的完整总结。" : "沟通安排及待办。",
+      usage: { inputTokens: 10, outputTokens: 4 } };
+  });
+  assert.equal(result.chunkCount, 7);
+  assert.equal(result.messageCount, 1295);
+  assert.deepEqual(seen, messages.map(row => row.id));
+  assert.equal(requests.length, 9); // Seven maps, one recovery, one final.
+  assert.ok(requests[0]!.maxOutputTokens! > 1536);
+  assert.equal(requests[1]!.maxOutputTokens, requests[0]!.maxOutputTokens! * 2);
+  assert.equal(requests[1]!.prompt, requests[0]!.prompt);
+  const target = (request: GenerationRequest) => Number(request.system.match(/全文不超过(\d+)字/u)?.[1]);
+  assert.ok(target(requests[1]!) < target(requests[0]!));
+  assert.match(requests[0]!.system, /禁止逐条复述/);
+  assert.equal(progress.at(-1)!.completedMessages, 1295);
+  assert.equal(progress.at(-1)!.completedCalls, 9);
+  assert.equal(progress.at(-1)!.totalCalls, 9);
+  assert.deepEqual(result.usage, { inputTokens: 180, outputTokens: requests[0]!.maxOutputTokens! + 32 });
+});
+
+it("internal truncation recovery stays within 4K, 64K and 1M context and never drops split message text", async () => {
+  for (const contextTokens of [4096, 65536, 1000000]) {
+    const text = "汉字".repeat(Math.ceil(contextTokens / 3));
+    const parts: any[] = [];
+    let calls = 0;
+    const result = await generateAssistant({ ...config, contextTokens }, { ...input, messages: [
+      { id: "oversized", side: "other", text },
+    ] }, {}, async (_, request) => {
+      calls++;
+      assert.ok(Buffer.byteLength(request.system + request.prompt, "utf8") +
+        request.maxOutputTokens! + 256 <= contextTokens);
+      if (calls === 1) throw new ModelConnectorError("output-truncated", "synthetic");
+      parts.push(...records(request.prompt).filter(row => row.id));
+      return { text: request.stream ? "总结" : "事实" };
+    });
+    assert.ok(result.chunkCount > 1);
+    assert.equal(parts.map(part => part.text).join(""), text);
+    assert.equal(result.coverage[0]!.parts, parts.length);
+    assert.equal(calls, result.chunkCount + 2);
+  }
+});
+
+it("repeated internal truncation stops after one recovery and cannot return partial coverage", async () => {
+  let calls = 0;
+  const progress: AssistantProgress[] = [];
+  await assert.rejects(generateAssistant(config, { ...input, messages: [
+    { id: "large", side: "other", text: "上下文".repeat(1000) },
+  ] }, { onProgress: value => progress.push(value) }, async () => {
+    calls++;
+    throw new ModelConnectorError("output-truncated", "never complete");
+  }), isCode("output-truncated"));
+  assert.equal(calls, 2);
+  assert.ok(progress.every(value => value.completedMessages === 0));
+});
+
+it("final summary has a larger bounded cap with a length goal, and final truncation is never silently retried", async () => {
+  for (const contextTokens of [4096, 65536, 1000000]) {
+    let calls = 0;
+    await assert.rejects(generateAssistant({ ...config, contextTokens }, input, {}, async (_, request) => {
+      calls++;
+      assert.equal(request.stream, true);
+      assert.equal(request.requireComplete, true);
+      assert.equal(request.maxOutputTokens, Math.min(16384, Math.floor(contextTokens / 4)));
+      assert.match(request.prompt, /输出控制在\d+字以内/);
+      throw new ModelConnectorError("output-truncated", "synthetic final");
+    }), isCode("output-truncated"));
+    assert.equal(calls, 1);
+  }
+});
+
+it("cancellation and ordinary API errors do not trigger the internal output recovery", async () => {
+  for (const code of ["auth", "rate-limit", "timeout", "cancelled"] as const) {
+    let calls = 0;
+    await assert.rejects(generateAssistant(config, { ...input, messages: [
+      { id: "large", side: "other", text: "上下文".repeat(1000) },
+    ] }, {}, async () => { calls++; throw new ModelConnectorError(code, "synthetic"); }), isCode(code));
+    assert.equal(calls, 1);
+  }
+  const controller = new AbortController();
+  let calls = 0;
+  await assert.rejects(generateAssistant(config, { ...input, messages: [
+    { id: "large", side: "other", text: "上下文".repeat(1000) },
+  ] }, { signal: controller.signal }, async () => {
+    calls++; controller.abort(); throw new ModelConnectorError("output-truncated", "synthetic");
+  }), isCode("cancelled"));
+  assert.equal(calls, 1);
+});
+
+it("strict assistant SSE rejects partial EOF, failed terminal events and interrupted chat completions without retry", async () => {
+  const original = globalThis.fetch;
+  try {
+    for (const [protocol, body, expected] of [
+      ["chat_completions", 'data: {"choices":[{"delta":{"content":"partial"},"finish_reason":null}]}\n\n', "invalid-output"],
+      ["chat_completions", 'data: {"choices":[{"delta":{"content":"partial"},"finish_reason":"aborted"}]}\n\ndata: [DONE]\n\n', "invalid-output"],
+      ["responses", 'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"partial"}\n\n', "invalid-output"],
+      ["responses", 'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"partial"}\n\nevent: response.failed\ndata: {"type":"response.failed","response":{"error":{"message":"secret"}}}\n\n', "provider-error"],
+      ["responses", 'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"partial"}\n\nevent: response.incomplete\ndata: {"type":"response.incomplete","response":{"status":"incomplete","incomplete_details":{"reason":"max_output_tokens"}}}\n\n', "output-truncated"],
+    ] as const) {
+      let calls = 0;
+      globalThis.fetch = async () => { calls++; return new Response(body,
+        { status: 200, headers: { "content-type": "text/event-stream" } }); };
+      await assert.rejects(generateStructured({ ...config, protocol }, {
+        system: "生成回复", prompt: "合成聊天", stream: true, requireComplete: true,
+      }), isCode(expected));
+      assert.equal(calls, 1);
+    }
+  } finally { globalThis.fetch = original; }
+});

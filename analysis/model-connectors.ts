@@ -48,6 +48,8 @@ export interface GenerationRequest {
   jsonMode?: boolean;
   /** Opt-in plain-text assistance: disable official DeepSeek reasoning overhead. */
   disableThinking?: boolean;
+  /** Reject unfinished provider output; assistant calls cannot accept partial success. */
+  requireComplete?: boolean;
 }
 
 export interface GenerationResult {
@@ -68,6 +70,7 @@ export class ModelConnectorError extends Error {
     readonly code: ConnectorErrorCode,
     message: string,
     readonly status?: number,
+    readonly usage?: ModelUsage,
   ) {
     super(message);
     this.name = "ModelConnectorError";
@@ -261,8 +264,9 @@ function errorStatus(error: unknown): number | undefined {
 
 // A provider that stops at the output cap returns syntactically broken JSON. Report
 // that cut explicitly instead of letting callers misread it as a format error.
-function outputTruncated(): never {
-  throw new ModelConnectorError("output-truncated", "模型输出达到长度上限被截断");
+function outputTruncated(inputTokens?: number, outputTokens?: number): never {
+  throw new ModelConnectorError("output-truncated", "模型输出达到长度上限被截断", undefined,
+    usage(inputTokens, outputTokens));
 }
 
 function streamFormatError(error: unknown): boolean {
@@ -423,6 +427,7 @@ export async function generateStructured(
         outputLimit < 1 || outputLimit > 32768)) ||
       (request.jsonMode !== undefined && typeof request.jsonMode !== "boolean") ||
       (request.disableThinking !== undefined && typeof request.disableThinking !== "boolean") ||
+      (request.requireComplete !== undefined && typeof request.requireComplete !== "boolean") ||
       (request.stream !== undefined && typeof request.stream !== "boolean") ||
       (request.timeoutMs !== undefined && (!Number.isInteger(request.timeoutMs) ||
         request.timeoutMs < 1000 || request.timeoutMs > 240_000)) ||
@@ -471,6 +476,7 @@ export async function generateStructured(
             let finalStatus: string | undefined;
             let incompleteReason: string | undefined;
             let validStream = false;
+            let terminalEvent = false;
             for await (const event of stream as AsyncIterable<any>) {
               if (typeof event?.type === "string" && event.type.startsWith("response.")) validStream = true;
               if (event?.type === "response.output_text.delta" && typeof event.delta === "string") {
@@ -480,6 +486,7 @@ export async function generateStructured(
               }
               if (event?.type === "response.created" || event?.type === "response.completed" ||
                   event?.type === "response.incomplete") {
+                if (event.type !== "response.created") terminalEvent = true;
                 responseId = typeof event.response?.id === "string" ? event.response.id : responseId;
                 responseUsage = event.response?.usage ?? responseUsage;
                 finalStatus = event.response?.status ?? finalStatus;
@@ -488,12 +495,19 @@ export async function generateStructured(
                   text = event.response.output_text;
                 }
               }
+              if (event?.type === "response.failed") {
+                throw new ModelConnectorError("provider-error", "模型未完成输出");
+              }
               if (event?.type === "error") throw new Error(String(event.message || "provider stream error"));
             }
             if (!text.trim()) {
-              if (finalStatus === "incomplete" && incompleteReason === "max_output_tokens") outputTruncated();
+              if (finalStatus === "incomplete" && incompleteReason === "max_output_tokens")
+                outputTruncated(responseUsage?.input_tokens, responseUsage?.output_tokens);
               if (validStream) throw new ModelConnectorError("empty-response", "模型没有返回文本");
               throw streamFormatFailure();
+            }
+            if (request.requireComplete && !terminalEvent) {
+              throw new ModelConnectorError("invalid-output", "流式响应未完整结束");
             }
             response = { output_text: text, id: responseId, usage: responseUsage,
               status: finalStatus, incomplete_details: { reason: incompleteReason } };
@@ -511,7 +525,11 @@ export async function generateStructured(
           { signal: request.signal });
         }
         if ((response as any).status === "incomplete" &&
-            (response as any).incomplete_details?.reason === "max_output_tokens") outputTruncated();
+            (response as any).incomplete_details?.reason === "max_output_tokens")
+          outputTruncated(response.usage?.input_tokens, response.usage?.output_tokens);
+        if (request.requireComplete && (response as any).status && (response as any).status !== "completed") {
+          throw new ModelConnectorError("invalid-output", "模型未完成输出");
+        }
         if (response.output_text) markFirstBody();
         result = { text: response.output_text || "",
           responseId: typeof response.id === "string" ? response.id : undefined,
@@ -531,7 +549,7 @@ export async function generateStructured(
           ...(request.maxOutputTokens !== undefined ?
             { max_tokens: request.maxOutputTokens } : {}),
           ...(request.disableThinking && new URL(safe.baseUrl).hostname.toLowerCase() === "api.deepseek.com"
-            ? { reasoning_effort: "none" as const } : {}) };
+            ? { reasoning_effort: "none" as const, thinking: { type: "disabled" as const } } : {}) };
         let response;
         try {
           const requestBody = { ...params,
@@ -555,9 +573,12 @@ export async function generateStructured(
               }
             }
             if (!text.trim()) {
-              if (finishReason === "length") outputTruncated();
+              if (finishReason === "length") outputTruncated(responseUsage?.prompt_tokens, responseUsage?.completion_tokens);
               if (validStream) throw new ModelConnectorError("empty-response", "模型没有返回文本");
               throw streamFormatFailure();
+            }
+            if (request.requireComplete && !finishReason) {
+              throw new ModelConnectorError("invalid-output", "流式响应未完整结束");
             }
             response = { choices: [{ message: { content: text }, finish_reason: finishReason }], usage: responseUsage };
           }
@@ -569,7 +590,12 @@ export async function generateStructured(
           if (!streamFormat && !streamRejected && !jsonRejected) throw error;
           response = await client.chat.completions.create(params, { signal: request.signal });
         }
-        if ((response.choices[0] as any)?.finish_reason === "length") outputTruncated();
+        if ((response.choices[0] as any)?.finish_reason === "length")
+          outputTruncated(response.usage?.prompt_tokens, response.usage?.completion_tokens);
+        if (request.requireComplete && (response.choices[0] as any)?.finish_reason &&
+            (response.choices[0] as any).finish_reason !== "stop") {
+          throw new ModelConnectorError("invalid-output", "模型未完成输出");
+        }
         if (response.choices[0]?.message.content) markFirstBody();
         result = { text: response.choices[0]?.message.content ?? "",
           usage: usage(response.usage?.prompt_tokens, response.usage?.completion_tokens) };
@@ -585,6 +611,8 @@ export async function generateStructured(
           system: request.system,
           ...(request.maxOutputTokens !== undefined ?
             { max_tokens: request.maxOutputTokens } : {}),
+          ...(request.disableThinking && new URL(safe.baseUrl).hostname.toLowerCase() === "api.deepseek.com"
+            ? { thinking: { type: "disabled" as const } } : {}),
           messages: [{ role: "user", content: request.prompt }] };
         // Anthropic's SDK type requires max_tokens even when a compatible gateway
         // accepts the provider default. Keep the field absent on the wire.
@@ -593,7 +621,7 @@ export async function generateStructured(
         // SDK's own default when no timeout is configured.
         const response = await client.messages.create(params as any,
           { signal: request.signal, timeout: timeoutMs ?? 600_000 });
-        if (response.stop_reason === "max_tokens") outputTruncated();
+        if (response.stop_reason === "max_tokens") outputTruncated(response.usage.input_tokens, response.usage.output_tokens);
         result = { text: response.content.filter((item) => item.type === "text")
           .map((item) => item.text).join("\n"),
           usage: usage(response.usage.input_tokens, response.usage.output_tokens) };
@@ -610,7 +638,8 @@ export async function generateStructured(
             ...(request.maxOutputTokens !== undefined ?
               { maxOutputTokens: request.maxOutputTokens } : {}),
             abortSignal: request.signal } });
-        if (response.candidates?.[0]?.finishReason === "MAX_TOKENS") outputTruncated();
+        if (response.candidates?.[0]?.finishReason === "MAX_TOKENS")
+          outputTruncated(response.usageMetadata?.promptTokenCount, response.usageMetadata?.candidatesTokenCount);
         result = { text: response.text ?? "",
           usage: usage(response.usageMetadata?.promptTokenCount,
             response.usageMetadata?.candidatesTokenCount) };
@@ -627,7 +656,7 @@ export async function generateStructured(
             { role: "user", content: request.prompt }],
           options: { ...(request.maxOutputTokens !== undefined ?
             { num_predict: request.maxOutputTokens } : {}) } });
-        if (response.done_reason === "length") outputTruncated();
+        if (response.done_reason === "length") outputTruncated(response.prompt_eval_count, response.eval_count);
         result = { text: response.message?.content ?? "",
           usage: usage(response.prompt_eval_count, response.eval_count) };
         break;

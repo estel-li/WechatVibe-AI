@@ -1,34 +1,32 @@
 <div align="center">
 
-<img src="docs/assets/readme/wechatvibe-logo.png" alt="WechatVibe" width="128">
+<img src="docs/assets/readme/wechatvibe-logo.png" alt="知意 AI" width="128">
 
-# WechatVibe Tauri 2
+# 知意 AI · WechatVibe AI
 
-微信聊天情感分析客户端 · 由 [estel-li](https://github.com/estel-li) 维护<br>
-意图识别 · 情绪感知 · 人物画像 · 群聊画像 · 好感度 · MBTI 聊天推测
+你的微信聊天复盘与回复助手 · 由 [estel-li](https://github.com/estel-li) 维护<br>
+AI 聊天总结 · 帮我回复 · 意图识别 · 情绪感知 · 人物画像 · 群聊画像
 
 [![Windows 10/11](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D6)](#运行要求)
 [![Tauri 2](https://img.shields.io/badge/desktop-Tauri%202-24C8D8)](https://tauri.app/)
 [![最新版本](https://img.shields.io/github/v/release/estel-li/WechatVibe-tauri2?label=release)](https://github.com/estel-li/WechatVibe-tauri2/releases/latest)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-[功能介绍](#功能介绍) · [下载安装](#下载安装) · [首次使用](#首次使用) · [常见问题](#常见问题) · [开发与构建](#开发与构建) · [数据与隐私](#数据与隐私) · [免责声明](#免责声明) · [来源与致谢](#来源与致谢) · [交流与反馈](#交流与反馈)
+[功能介绍](#功能介绍) · [下载安装](#下载安装) · [首次使用](#首次使用) · [常见问题](#常见问题) · [开发与构建](#开发与构建) · [数据与隐私](#数据与隐私) · [免责声明](#免责声明) · [交流与反馈](#交流与反馈) · [来源与致谢](#来源与致谢)
 
 </div>
 
-**这是基于 [tswawa/WechatVibe](https://github.com/tswawa/WechatVibe) 上游项目移植的 Tauri 2 版本，由 [estel-li](https://github.com/estel-li) 独立维护。** 保留上游的聊天分析功能与页面结构，将 Electron 桌面宿主替换为 Rust + Tauri 2 + Windows WebView2。保留上游 Apache-2.0 许可、来源说明及第三方声明。
+知意 AI（英文名 WechatVibe AI）是一款 Windows 微信聊天助手，帮助你整理对话、回顾沟通和准备回复。它只读读取本机已登录账号的聊天，在一个界面里提供 AI 总结、语境回复、消息分析和人物画像。
 
-WechatVibe 只读读取本机已登录的 Windows 微信，分析消息情绪与沟通意图，并整理人物画像、群聊画像、好感度和 MBTI 聊天推测。
-
-- **本地分析**：使用 [Laya](https://github.com/NandhaKishorM/laya) 的 [多语言 ONNX 模型](https://huggingface.co/mizchi/laya-multilingual-onnx)，在本机推理。
-- **API 分析**：支持 Anthropic、OpenAI Responses、Chat Completions、Gemini 和 Ollama 兼容接口。
-- **微信读取**：沿用 [wechatauto-replica](https://github.com/fanyuantaier/wechatauto-replica) 与 `native-reader` 的只读读取层。
-- **桌面架构**：Tauri 2 管理窗口、系统操作与进程通信，Node/Python 承载原有分析服务；运行包不附带 Electron 或 Chromium 分发包。
-- **本版本优化**：消息节点复用、时间格式化、后台退出清理、剪贴板处理，以及设置弹窗的布局和键盘操作。详见 [review 与性能记录](docs/review-and-performance.md) 和 [迁移记录](MIGRATION.md)。
+- **读懂一段对话**：总结当前会话的全部历史或指定时间内的消息，整理主要话题、约定与待办；长历史分段处理，覆盖尚未滚动加载的记录。
+- **想好如何回复**：结合上下文和你的表达要求，按普通朋友、亲密朋友、同事、亲戚、长辈或自定义关系生成回复。提示词可编辑，不满意可重新生成。
+- **回顾沟通变化**：查看情绪和意图标签、好感度、互动风格、人物与群聊画像，以及基于聊天的 MBTI 倾向。
+- **选择自己的模型**：消息分析可使用本地 Laya 或 API；对话助手独立接入 DeepSeek 或自定义服务。支持 Chat Completions、Responses、Anthropic、Gemini 和 Ollama 兼容接口。
+- **保留操作决定权**：总结与回复由你主动发起，结果可复制或放入草稿；应用不会自动发送微信消息。
 
 ![API 模式下的消息情绪与意图识别](docs/assets/readme/chat-demo.png)
 
-<sub>功能演示图沿用上游截图，聊天与分析结果均为虚构数据。以下功能与使用说明参考上游完整 README，并针对本版本的运行、构建和维护方式调整。</sub>
+<sub>演示中的聊天与分析结果为虚构数据，素材来源与许可见页面底部。</sub>
 
 ## 功能介绍
 
@@ -87,7 +85,7 @@ WechatVibe 只读读取本机已登录的 Windows 微信，分析消息情绪与
 - **历史记录**：分页查看更早的消息，可按关键词或日期查找，并定位到上下文。
 - **聊天记录路径**：自动找不到微信数据时，可在「设置 → 通用设置 → 聊天记录路径」选择 `xwechat_files` 或账号目录，也可以恢复自动发现。选择目录后仍需微信登录并通过账号校验。
 - **多账号**：每个微信账号使用独立的数据库，再次登录时复用原有记录。
-- **清除账号**：在账号管理中清除某个账号在 WechatVibe 里的聊天副本、分析和画像，不影响微信本身的聊天记录。清除当前账号后软件会退出。
+- **清除账号**：在账号管理中清除某个账号在知意 AI 里的聊天副本、分析和画像，不影响微信本身的聊天记录。清除当前账号后软件会退出。
 
 <details>
 <summary>截图：选择要查看的会话</summary>
@@ -116,7 +114,7 @@ WechatVibe 只读读取本机已登录的 Windows 微信，分析消息情绪与
 
 ## 下载安装
 
-从 [本版本 Releases](https://github.com/estel-li/WechatVibe-tauri2/releases/latest) 下载 Windows x64 安装版或绿色版。Tauri 版独立版本从 **1.0.0** 开始，保留上游功能；此版本号与上游 Electron 版本号分别维护。
+从 [Releases](https://github.com/estel-li/WechatVibe-tauri2/releases/latest) 下载 Windows x64 安装版或绿色版。当前公开发行版为 **1.0.0**；AI 对话助手在 **1.1.0 开发版**中提供，暂未发布到 Releases。
 
 | 发行文件 | 使用方式 |
 | --- | --- |
@@ -131,7 +129,7 @@ WechatVibe 只读读取本机已登录的 Windows 微信，分析消息情绪与
 2. ZIP 解压后保留整个 `tauri2-portable` 目录，双击 `WechatVibe.exe`。安装包按向导安装后启动。
 3. 本地分析需要在「设置 → 本地部署」下载模型，或选择已有、通过校验的模型目录；仅使用 API 时可跳过。
 
-Tauri 版和上游 Electron 版的目录布局、桌面程序及更新包不同，升级应使用同一架构的完整运行包。
+升级请使用本仓库提供的完整运行包，保持与当前安装的架构一致。
 
 ### 运行要求
 
@@ -139,11 +137,11 @@ Tauri 版和上游 Electron 版的目录布局、桌面程序及更新包不同�
 | --- | --- |
 | 系统 | Windows 10/11 x64 |
 | 桌面运行时 | Microsoft Edge WebView2 Runtime；安装器提供缺失时的安装引导 |
-| 微信 | Windows 微信 4.x，保持账号已登录；不支持 3.x。上游记录的实测版本为 4.1.15.13，本次迁移未重新测试真实账号 |
+| 微信 | Windows 微信 4.x，保持账号已登录；不支持 3.x。历史读取测试版本为 4.1.15.13，当前离线回归不等同于真实账号验证 |
 | Node/Python | 便携运行包内置所需运行时；源码开发需自行安装 |
 | 存储 | 便携目录需可写，账号、缓存、模型和 WebView 数据保存在 `client/.local/` |
 
-下面的 Laya 配置参考来自上游，本次移植未重新系统测试低配设备。
+下面是本地 Laya 的配置参考；低配设备尚未系统测试。
 
 <details>
 <summary>本地 Laya 配置参考（只用 API 可以跳过）</summary>
@@ -174,7 +172,7 @@ Tauri 版和上游 Electron 版的目录布局、桌面程序及更新包不同�
 
 应用保留「设置 → 关于 → 当前版本」的检查、下载、校验、安装与回退流程。**1.0.0 起只检查 `estel-li/WechatVibe-tauri2` Releases。** 更新器使用本版本独立的 Ed25519 公钥，验证对应产品标识、签名及文件布局的 Tauri 2 资产。发布页附带 `update-manifest-tauri2.json`、签名与校验文件供更新器使用；手动安装仅需下载 EXE 或 ZIP。
 
-手动升级时，完全退出应用后使用同架构完整运行包，并保留该安装的 `client/.local` 和 `client/.models`。首次迁移和后续维护说明分别见 [MIGRATION.md](MIGRATION.md) 与 [review 记录](docs/review-and-performance.md)。[CHANGELOG.md](CHANGELOG.md) 区分本版本发布记录和上游功能版本历史。
+手动升级时，完全退出应用后使用同架构完整运行包，并保留该安装的 `client/.local` 和 `client/.models`。架构与维护说明见 [MIGRATION.md](MIGRATION.md) 和 [review 记录](docs/review-and-performance.md)，版本历史见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 常见问题
 
@@ -228,7 +226,7 @@ npm ci
 npm start
 ```
 
-`--no-deps` 使用项目已锁定的读取依赖集合。上游声明的可选 GUI、OCR 和媒体依赖不在该集合内，详见 `THIRD_PARTY_NOTICES.md`。项目脚本自动选择 `.venv`；也可以使用 `WECHATVIBE_PYTHON` 指定 Python，`WECHATVIBE_NODE` 指定业务运行的 Node。`npm start` 启动 Tauri 开发宿主，后端和分析 worker 由桌面宿主管理。
+`--no-deps` 使用项目已锁定的读取依赖集合。读取组件的可选 GUI、OCR 和媒体依赖不在该集合内，详见 `THIRD_PARTY_NOTICES.md`。项目脚本自动选择 `.venv`；也可以使用 `WECHATVIBE_PYTHON` 指定 Python，`WECHATVIBE_NODE` 指定业务运行的 Node。`npm start` 启动 Tauri 开发宿主，后端和分析 worker 由桌面宿主管理。
 
 开发数据写入本目录 `.local/`。缺少本地模型时，可在原有设置界面下载并安装，或先执行：
 
@@ -294,7 +292,7 @@ npm test
 迁移边界与验证记录见 [MIGRATION.md](MIGRATION.md)，启动诊断见 [docs/startup-diagnostics.md](docs/startup-diagnostics.md)，第三方许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 ### 业务结构与词库
 
-`analysis/` 来自上游 `electron/` 的纯 TypeScript 分析模块，继续由 Node + `tsx` 执行。Python 读取和存储位于 `bridge/`、`native-reader/`；`chatui/` 保留页面；`src-tauri/` 是 Rust 桌面宿主。后端职责见 [后端架构说明](docs/backend-architecture.md)。
+`analysis/` 是由 Node + `tsx` 执行的 TypeScript 分析与生成模块。Python 读取和存储位于 `bridge/`、`native-reader/`；`chatui/` 提供界面；`src-tauri/` 是 Rust + Tauri 2 桌面宿主。后端职责见 [后端架构说明](docs/backend-architecture.md)。
 
 词库源文件为 `scripts/analysis-catalog-source.json`、`scripts/intent-display-source.json` 和 `scripts/social-intent-source.json`。修改时保留既有 ID，再执行 `npm run catalog:generate`。可通过 `npm run catalog:export` 导出显示词库。
 
@@ -309,14 +307,14 @@ npm test
 使用时请注意：
 
 - 只读取自己有权访问的账号和聊天，不用于获取他人的私人记录。
-- 清除账号只删除 WechatVibe 保存的数据，不删除微信原始聊天。
+- 清除账号只删除知意 AI 保存的数据，不删除微信原始聊天。
 - 软件只分析和展示，不自动发送微信消息，也不提供聊天记录导出功能。
 - 不要把聊天数据库、解密密钥、账号缓存或带私人内容的日志上传到仓库、Issue 或交流群。
 - 反馈问题前先检查截图和日志，移除不想公开的姓名、账号和对话。
 
 ## 免责声明
 
-WechatVibe 面向技术学习、研究及个人聊天复盘。使用前请确认数据来源和使用方式符合适用法律、微信服务协议及相关第三方服务条款。
+知意 AI 面向技术学习、研究及个人聊天复盘。使用前请确认数据来源和使用方式符合适用法律、微信服务协议及相关第三方服务条款。
 
 - **功能与使用边界**：本项目不提供微信聊天记录导出功能，本地缓存用于应用内查看与分析。项目不提倡通过导出、传播、交易或再利用聊天记录侵犯用户隐私、数据权益或微信相关合法权益，也不为此类用途提供支持。
 - **数据授权**：仅处理本人合法持有、有权访问和分析的聊天记录。能在设备上看到记录，不代表可以任意公开、传播或用于其他目的；涉及他人信息时，应尊重其隐私和合法权益。不得用于盗取账号、未经授权的监控、跟踪、骚扰或其他违法侵权活动。
@@ -327,7 +325,7 @@ WechatVibe 面向技术学习、研究及个人聊天复盘。使用前请确认
 - **使用者责任**：使用者应自行判断本项目是否适合其用途，并负责取得账号、聊天数据及第三方服务所需的授权。由使用者自行决定的数据处理方式、服务配置、结果使用，以及自行或委托第三方实施的修改、部署与运营，由相应使用者、开发者或运营者承担其行为及承诺所对应的责任。
 - **责任限制**：在适用法律允许的最大范围内，且除另有书面约定外，维护者及贡献者不对因使用或无法使用本项目而产生的直接、间接、附带、特殊或后果性损失承担责任，包括数据丢失、账号受限、业务中断及其他损失。担保与责任限制的具体范围以 [Apache-2.0](LICENSE) 许可证第 7 至第 9 条为准。
 
-WechatVibe 为独立项目，与腾讯、微信没有官方隶属、合作或背书关系。相关名称、商标及第三方组件的权利归各自权利人所有。
+知意 AI 为独立项目，与腾讯、微信没有官方隶属、合作或背书关系。相关名称、商标及第三方组件的权利归各自权利人所有。
 
 ## 许可
 
@@ -335,21 +333,21 @@ WechatVibe 为独立项目，与腾讯、微信没有官方隶属、合作或背
 
 演示头像使用 Lisa Wischofsky 的 [Adventurer](https://www.dicebear.com/styles/adventurer/) 插画，经 DiceBear 组合并调整配色，采用 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)；该素材许可独立于项目代码许可。
 
-## 来源与致谢
-
-- **上游项目**：[tswawa/WechatVibe](https://github.com/tswawa/WechatVibe)。本版本基于其 Electron 项目移植，保留业务功能、源码中的作者和来源声明、许可证及演示素材署名。
-- **README 参考**：上游 [README（提交 `99f42f0`）](https://github.com/tswawa/WechatVibe/blob/99f42f07f63e6b2fbceab9fb7020cdb4d98850c3/README.md)，参考日期 2026-10-07。功能说明和使用边界沿用上游内容，安装路径、开发与构建步骤按 Tauri 2 版适配。该提交是文档参考版本，不表示本地移植源码与该提交完全一致。
-- **微信读取**：[fanyuantaier/wechatauto-replica](https://github.com/fanyuantaier/wechatauto-replica)。
-- **分析模型与适配**：[Laya](https://github.com/NandhaKishorM/laya)、[mizchi/laya-mlx](https://github.com/mizchi/laya-mlx)、[mizchi/laya-multilingual-onnx](https://huggingface.co/mizchi/laya-multilingual-onnx)。
-- **上游贡献者**：感谢上游作者与所有贡献者，具体贡献见 [上游致谢](https://github.com/tswawa/WechatVibe#致谢)。
-
-本项目是独立维护的衍生版本，不代表上游作者运营或支持，不以原作者名义开展合作或作出承诺。第三方使用、修改或分发须保留相应来源和许可，并对自行修改、分发及运营负责。
-
 ## 交流与反馈
 
 - 本版本维护者：[estel-li](https://github.com/estel-li)
 - 本版本源码：[estel-li/WechatVibe-tauri2](https://github.com/estel-li/WechatVibe-tauri2)
 - 本版本问题反馈：[GitHub Issues](https://github.com/estel-li/WechatVibe-tauri2/issues)
-- 上游源码与原版说明：[tswawa/WechatVibe](https://github.com/tswawa/WechatVibe)
 
 反馈时请说明 Windows、微信、应用版本、模型模式和复现步骤。截图及日志请先去除私聊内容、个人身份、账号、API Key、数据库密钥等私人信息。
+
+## 来源与致谢
+
+本项目的基本聊天读取、情绪与意图分析、人物及群聊画像功能，fork 自 [tswawa/WechatVibe v1.2.4](https://github.com/tswawa/WechatVibe/releases/tag/v1.2.4)。此后的 Tauri 2 架构、界面与性能改进、AI 聊天总结和帮我回复等功能由 [estel-li](https://github.com/estel-li) 持续开发维护。保留原代码中的作者、来源声明、Apache-2.0 许可及第三方素材署名。
+
+- **文档与演示素材**：基础功能说明参考上游 [README（提交 `99f42f0`）](https://github.com/tswawa/WechatVibe/blob/99f42f07f63e6b2fbceab9fb7020cdb4d98850c3/README.md)，参考日期 2026-10-07；部分基础功能截图沿用其合成演示素材。该提交是文档参考版本，不表示本地源码与该提交完全一致。
+- **微信读取**：[fanyuantaier/wechatauto-replica](https://github.com/fanyuantaier/wechatauto-replica)。
+- **分析模型与适配**：[Laya](https://github.com/NandhaKishorM/laya)、[mizchi/laya-mlx](https://github.com/mizchi/laya-mlx)、[mizchi/laya-multilingual-onnx](https://huggingface.co/mizchi/laya-multilingual-onnx)。
+- **上游贡献者**：感谢上游作者与所有贡献者，具体贡献见 [上游致谢](https://github.com/tswawa/WechatVibe#致谢)。
+
+本项目由维护者独立开发和运营。使用、修改或分发时，请保留相应来源与许可。

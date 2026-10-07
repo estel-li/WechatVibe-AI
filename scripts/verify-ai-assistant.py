@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--exe", type=Path,
-                        default=ROOT / "dist/WechatVibe-tauri2-ai-assistant/WechatVibe.exe")
+                        default=ROOT / "dist/WechatVibe-AI-1.1.0/WechatVibe.exe")
     parser.add_argument("--output", type=Path, default=ROOT / ".local/assistant-verification")
     args = parser.parse_args()
     executable = args.exe.resolve()

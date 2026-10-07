@@ -32,6 +32,11 @@
 .assistant-model-info, .assistant-help { margin: 0 0 13px; color: var(--text-secondary); font-size: 12px; overflow-wrap: anywhere; }
 .assistant-form-row, .assistant-date-range { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin: 0 0 13px; }
 .assistant-form-row > label, .assistant-date-range > label { min-width: 0; flex: 1 1 190px; }
+.assistant-time-shortcuts { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 6px; }
+.assistant-time-shortcuts button { font-size: 12px; padding: 5px 11px; }
+.assistant-time-shortcuts button[aria-pressed="true"] { color: var(--color-green, #07c160); border-color: var(--color-green, #07c160); }
+.assistant-time-help { margin: 0 0 12px; color: var(--text-secondary); font-size: 11px; line-height: 1.65; }
+.assistant-context-upgrade:has(button:not([hidden])) { margin: -4px 0 12px; }
 .assistant-form-row label, .assistant-date-range label, .assistant-field { display: flex; flex-direction: column; gap: 5px; }
 .assistant-field { margin: 0 0 13px; }
 .assistant-field > span { color: var(--text-secondary); font-size: 11px; }
